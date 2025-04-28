@@ -37,15 +37,15 @@ dmg:
 
 win:
   target:
-    - target: nsis
+    - target: portable
       arch:
         - x64
         - arm64
   verifyUpdateCodeSignature: false
-  artifactName: ${productName}-${version}-Setup.${ext}
-  sign: ./custom_win_sign.js
-  signingHashAlgorithms:
-    - sha256
+  artifactName: ${productName}-${version}.${ext}
+  # sign: ./custom_win_sign.js
+  # signingHashAlgorithms:
+  #   - sha256
 
 nsis:
   oneClick: false
@@ -72,9 +72,9 @@ directories:
 extraResources:
   - ./assets/**
 
-publish:
-  - provider: s3
-    bucket: chatbox
-    endpoint: https://208624959c9d215edea0720162a740c1.r2.cloudflarestorage.com
-    path: /releases
-    channel: ${env.UPDATE_CHANNEL} 
+# publish:
+#   - provider: s3
+#     bucket: chatbox
+#     endpoint: https://208624959c9d215edea0720162a740c1.r2.cloudflarestorage.com
+#     path: /releases
+#     channel: ${env.UPDATE_CHANNEL} 

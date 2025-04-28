@@ -89,9 +89,9 @@ export default function Sidebar(props: {}) {
               )}
             >
               <Box>
-                <a href="https://chatboxai.app" target="_blank">
-                  <img src={icon} className="w-6 h-6 mr-2 align-middle inline-block" />
-                  <span className="text-xl font-semibold align-middle inline-block opacity-75">Chatbox</span>
+                <a href="" target="_blank">
+                  {/* <img src={icon} className="w-6 h-6 mr-2 align-middle inline-block" /> */}
+                  <span className="text-xl font-semibold align-middle inline-block opacity-75">Chatbox & InferX</span>
                 </a>
               </Box>
               <Box onClick={() => setShowSidebar(!showSidebar)}>

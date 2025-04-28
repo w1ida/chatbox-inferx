@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 export function settings(): Settings {
   return {
-    aiProvider: ModelProvider.OpenAI,
+    aiProvider: ModelProvider.Custom,
     openaiKey: '',
     apiHost: 'https://api.openai.com',
     dalleStyle: 'vivid',
@@ -62,8 +62,20 @@ export function settings(): Settings {
     xAIKey: '',
     xAIModel: 'grok-beta',
 
-    customProviders: [],
-
+    customProviders: [
+      {
+        id: 'InferX',
+        name: 'InferX',
+        api: 'openai',
+        host: 'xxx',
+        path: 'string',
+        key: 'string',
+        model: 'QwQ32-B',
+        modelOptions: [],
+        useProxy: false
+      }
+    ],
+    selectedCustomProviderId:'InferX',
     showWordCount: false,
     showTokenCount: false,
     showTokenUsed: true,
@@ -92,7 +104,7 @@ export function settings(): Settings {
     autoGenerateTitle: true,
 
     autoLaunch: false,
-    autoUpdate: true,
+    autoUpdate: false,
     betaUpdate: false,
 
     shortcuts: {
