@@ -75,36 +75,17 @@ export function settings(): Settings {
 
     customProviders: [
       {
+        type: ModelProviderType.OpenAI,
         id: 'InferX',
         name: 'InferX',
-        api: 'openai',
-        host: 'http://inferx-api.paas.cmbchina.cn',
-        path: '/v1/chat/completions',
-        key: 'sk-8c86a0f384614a2d8e3f0d9b6d9d3d1a',
-        model: 'qwen3-30b-a3b-kl',
-        modelOptions: [
-          "qwen-72b",
-          "qwen-1p5-14b-chat-hw",
-          "qwen2-vl-7b-instruct-hw",
-          "qwen3-4b-mx",
-          "qwen3-14b-mx",
-          "qwen3-30b-a3b-mx",
-          "qwen3-32b-mx",
-          "Qwen3-32B",
-          "Qwen3-32B-128K",
-          "qwen3-235b-a22b-int8-mx",
-          "qwen3-vl-4b-instruct",
-          "qwen3-vl-30b-a3b-instruct",
-          "qwen3-vl-32b-instruct",
-          "qwen3-30b-a3b-kl",
-          "qwen3-4b-hw",
-          "qwen3-14b-hw",
-          "yizhao1-12b-hw"
-        ],
-        useProxy: false,
+        defaultSettings: {
+          apiHost: 'http://inferx-api.paas.cmbchina.cn',
+          apiKey: 'sk-8c86a0f384614a2d8e3f0d9b6d9d3d1a',
+          apiPath: '/v1/chat/completions',
+        },
+        isCustom: true
       },
     ],
-    selectedCustomProviderId: 'InferX',
     showWordCount: false,
     showTokenCount: false,
     showTokenUsed: true,

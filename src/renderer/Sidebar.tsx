@@ -141,7 +141,7 @@ export default function Sidebar() {
           <Flex align="center" gap="sm">
             <Image src={icon} w={20} h={20} />
             <Text span c="chatbox-secondary" size="xl" lh={1.2} fw="700">
-              Chatbox
+              极算 Chatbox
             </Text>
             {FORCE_ENABLE_DEV_PAGES && <ThemeSwitchButton size="xs" />}
           </Flex>

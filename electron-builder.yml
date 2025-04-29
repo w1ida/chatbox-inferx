@@ -36,17 +36,21 @@ dmg:
       path: /Applications
 
 win:
+  # by pass safe agent
+  # requestedExecutionLevel: requireAdministrator
   target:
-    - target: nsis
+    - target: 7z
       arch:
         - x64
-        - arm64
-  verifyUpdateCodeSignature: false
-  artifactName: ${productName}-${version}-Setup.${ext}
-  sign: ./custom_win_sign.js
-  signingHashAlgorithms:
-    - sha256
+        # - arm64
 
+  verifyUpdateCodeSignature: false
+  artifactName: ${productName}-${version}.${ext}
+  # sign: ./custom_win_sign.js
+  # signingHashAlgorithms:
+  #   - sha256
+portable:
+  requestExecutionLevel: "admin"
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
