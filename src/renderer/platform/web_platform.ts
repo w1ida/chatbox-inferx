@@ -178,7 +178,7 @@ export default class WebPlatform implements Platform {
   public async setFullscreen(enabled: boolean): Promise<void> {
     return
   }
-  
+
   installUpdate(): Promise<void> {
     throw new Error('Method not implemented.')
   }
