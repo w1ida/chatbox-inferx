@@ -10,9 +10,10 @@ import useNeedRoomForWinControls from '@/hooks/useNeedRoomForWinControls'
 export type PageProps = {
   children?: React.ReactNode
   title: string | React.ReactNode
+  left?: React.ReactNode
 }
 
-export const Page: FC<PageProps> = ({ children, title }) => {
+export const Page: FC<PageProps> = ({ children, title, left }) => {
   const [showSidebar, setShowSidebar] = useAtom(atoms.showSidebarAtom)
   const isSmallScreen = useIsSmallScreen()
   const theme = useTheme()
@@ -21,7 +22,7 @@ export const Page: FC<PageProps> = ({ children, title }) => {
     <div className="flex flex-col h-full">
       <div
         className={cn(
-          'flex flex-row items-center',
+          'flex flex-row items-center pt-1',
           isSmallScreen ? '' : showSidebar ? 'sm:pl-3 sm:pr-2' : 'pr-2',
           (!showSidebar || isSmallScreen) && needRoomForMacWindowControls ? 'pl-20' : 'pl-3'
         )}
@@ -31,25 +32,26 @@ export const Page: FC<PageProps> = ({ children, title }) => {
           borderBottomColor: theme.palette.divider,
         }}
       >
-        {(!showSidebar || isSmallScreen) && (
-          <Box onClick={() => setShowSidebar(!showSidebar)}>
-            <IconButton
-              sx={
-                isSmallScreen
-                  ? {
-                      borderColor: theme.palette.action.hover,
-                      borderStyle: 'solid',
-                      borderWidth: 1,
-                    }
-                  : {}
-              }
-            >
-              <PanelRightClose size="20" strokeWidth={1.5} />
-            </IconButton>
-          </Box>
-        )}
+        {left ||
+          ((!showSidebar || isSmallScreen) && (
+            <Box onClick={() => setShowSidebar(!showSidebar)}>
+              <IconButton
+                sx={
+                  isSmallScreen
+                    ? {
+                        borderColor: theme.palette.action.hover,
+                        borderStyle: 'solid',
+                        borderWidth: 1,
+                      }
+                    : {}
+                }
+              >
+                <PanelRightClose size="20" strokeWidth={1.5} />
+              </IconButton>
+            </Box>
+          ))}
         {/* 固定高度，和 Windows 的 win controls bar 高度一致 */}
-        <div className={cn('title-bar w-full mx-auto flex flex-row', 'pt-3 pb-2 h-12')}>
+        <div className={cn('title-bar w-full mx-auto flex flex-row', 'py-2 h-12')}>
           {typeof title === 'string' ? (
             <Typography
               variant="h6"

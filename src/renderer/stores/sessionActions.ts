@@ -4,9 +4,8 @@ import { formatChatAsHtml, formatChatAsMarkdown, formatChatAsTxt } from '@/lib/f
 import * as appleAppStore from '@/packages/apple_app_store'
 import * as localParser from '@/packages/local-parser'
 import { generateImage, generateText, streamText } from '@/packages/model-calls'
-import { getModelDisplayName, isModelSupportToolUse } from '@/packages/model-setting-utils'
+import { getModelDisplayName } from '@/packages/model-setting-utils'
 import { getModel } from '@/packages/models'
-import type { onResultChangeWithCancel } from '@/packages/models/types'
 import {
   AIProviderNoImplementedPaintError,
   ApiError,
@@ -14,9 +13,11 @@ import {
   ChatboxAIAPIError,
   NetworkError,
 } from '@/packages/models/errors'
+import type { onResultChangeWithCancel } from '@/packages/models/types'
 import * as remote from '@/packages/remote'
 import { estimateTokensFromMessages } from '@/packages/token'
 import { router } from '@/router'
+import { StorageKeyGenerator } from '@/storage/StoreStorage'
 import * as Sentry from '@sentry/react'
 import { getDefaultStore } from 'jotai'
 import { identity, pickBy, throttle } from 'lodash'
@@ -31,33 +32,30 @@ import {
   MessageLink,
   MessagePicture,
   ModelProvider,
-  ModelSettings,
+  ModelProviderEnum,
   Session,
   SessionMeta,
+  SessionSettings,
   SessionThread,
   Settings,
   createMessage,
-  pickPictureSettings,
-  settings2SessionSettings,
 } from '../../shared/types'
 import i18n from '../i18n'
 import * as promptFormat from '../packages/prompts'
 import platform from '../platform'
 import storage from '../storage'
+import { cloneMessage, countMessageWords, getMessageText, mergeMessages } from '../utils/message'
 import * as atoms from './atoms'
 import * as scrollActions from './scrollActions'
-import { createSession, getSession, saveSession, copySession, clearConversations } from './sessionStorageMutations'
-import { cloneMessage, countMessageWords, getMessageText, mergeMessages } from '../utils/message'
+import { clearConversations, copySession, createSession, getSession, saveSession } from './sessionStorageMutations'
 import * as settingActions from './settingActions'
-import { StorageKeyGenerator } from '@/storage/StoreStorage'
-import { toBeRemoved_getContextMessageCount } from '@/components/MaxContextMessageCountSlider'
 
 /**
  * 创建一个新的会话
  * @param newSession
  */
-function create(newSession: Omit<Session, 'id'>) {
-  const session = createSession(newSession)
+async function create(newSession: Omit<Session, 'id'>) {
+  const session = await createSession(newSession)
   switchCurrentSession(session.id)
   return session
 }
@@ -79,14 +77,14 @@ export function modifyThreadName(sessionId: string, threadName: string) {
 /**
  * 创建一个空的会话
  */
-export function createEmpty(type: 'chat' | 'picture') {
+export async function createEmpty(type: 'chat' | 'picture') {
   let newSession: Session
   switch (type) {
     case 'chat':
-      newSession = create(initEmptyChatSession())
+      newSession = await create(initEmptyChatSession())
       break
     case 'picture':
-      newSession = create(initEmptyPictureSession())
+      newSession = await create(initEmptyPictureSession())
       break
     default:
       throw new Error(`Unknown session type: ${type}`)
@@ -163,6 +161,34 @@ export function switchToNext(reversed?: boolean) {
 }
 
 /**
+ * 编辑历史话题(目前只支持修改名称)
+ * @param sessionId 会话 id
+ * @param threadId 历史话题 id
+ * @param newThread  Pick<Partial<SessionThread>, 'name'>
+ * @returns
+ */
+export function editThread(sessionId: string, threadId: string, newThread: Pick<Partial<SessionThread>, 'name'>) {
+  const session = getSession(sessionId)
+  if (!session || !session.threads) return
+
+  // 特殊情况： 如果修改的是当前的话题，则直接修改当前会话的threadName, 而不是name
+  if (threadId === sessionId) {
+    saveSession({ ...session, threadName: newThread.name })
+    return
+  }
+
+  const targetThread = session.threads.find((t) => t.id === threadId)
+  if (!targetThread) return
+
+  const threads = session.threads.map((t) => {
+    if (t.id !== threadId) return t
+    return { ...t, ...newThread }
+  })
+
+  saveSession({ ...session, threads })
+}
+
+/**
  * 删除历史话题
  * @param sessionId 会话 id
  * @param threadId 历史话题 id
@@ -207,7 +233,7 @@ export function clear(sessionId: string) {
  * @param source
  */
 export async function copy(source: SessionMeta) {
-  const newSession = copySession(source)
+  const newSession = await copySession(source)
   switchCurrentSession(newSession.id)
 }
 
@@ -229,6 +255,7 @@ export function refreshContextAndCreateNewThread(sessionId: string) {
     messages: session.messages,
     createdAt: Date.now(),
   }
+
   let systemPrompt = session.messages.find((m) => m.role === 'system')
   if (systemPrompt) {
     systemPrompt = createMessage('system', getMessageText(systemPrompt))
@@ -309,7 +336,7 @@ export function removeCurrentThread(sessionId: string) {
   saveSession(updatedSession)
 }
 
-export function moveThreadToConversations(sessionId: string, threadId: string) {
+export async function moveThreadToConversations(sessionId: string, threadId: string) {
   if (sessionId === threadId) {
     moveCurrentThreadToConversations(sessionId)
     return
@@ -322,25 +349,27 @@ export function moveThreadToConversations(sessionId: string, threadId: string) {
   if (!targetThread) {
     return
   }
-  const newSession = copySession({
+  const newSession = await copySession({
     ...session,
+    name: targetThread.name,
     messages: targetThread.messages,
-    threads: undefined,
+    threads: [],
     threadName: undefined,
   })
   removeThread(sessionId, threadId)
   switchCurrentSession(newSession.id)
 }
 
-export function moveCurrentThreadToConversations(sessionId: string) {
+export async function moveCurrentThreadToConversations(sessionId: string) {
   const session = getSession(sessionId)
   if (!session) {
     return
   }
-  const newSession = copySession({
+  const newSession = await copySession({
     ...session,
+    name: session.threadName || session.name,
     messages: session.messages,
-    threads: undefined,
+    threads: [],
     threadName: undefined,
   })
   removeCurrentThread(sessionId)
@@ -416,7 +445,7 @@ export function modifyMessage(sessionId: string, updated: Message, refreshCounti
   }
 
   // 更新消息时间戳
-  updated.timestamp = new Date().getTime()
+  updated.timestamp = Date.now()
 
   let hasHandled = false
   const handle = (msgs: Message[]): Message[] => {
@@ -513,7 +542,7 @@ export async function submitNewUserMessage(params: {
   insertMessage(currentSessionId, newUserMsg)
 
   const settings = getCurrentSessionMergedSettings()
-  const isChatboxAI = settings.aiProvider === ModelProvider.ChatboxAI
+  const isChatboxAI = settings.provider === ModelProviderEnum.ChatboxAI
   const remoteConfig = settingActions.getRemoteConfig()
 
   // 根据需要，插入空白的回复消息
@@ -544,7 +573,7 @@ export async function submitNewUserMessage(params: {
   try {
     // 如果本次消息开启了联网问答，需要检查当前模型是否支持
     // 桌面版&手机端总是支持联网问答，不再需要检查模型是否支持
-    if (webBrowsing && platform.type === 'web' && !isModelSupportToolUse(settings)) {
+    if (webBrowsing && platform.type === 'web' && !getModel(settings, { uuid: '' }).isSupportToolUse()) {
       if (remoteConfig.setting_chatboxai_first) {
         throw ChatboxAIAPIError.fromCodeName('model_not_support_web_browsing', 'model_not_support_web_browsing')
       } else {
@@ -631,18 +660,23 @@ export async function submitNewUserMessage(params: {
         modifyMessage(currentSessionId, { ...newUserMsg, links: newLinks }, false)
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     // 如果文件上传失败，一定会出现带有错误信息的回复消息
-    if (!(err instanceof Error)) {
-      err = new Error(`${err}`)
+    const error = !(err instanceof Error) ? new Error(`${err}`) : err
+    if (
+      !(
+        error instanceof ApiError ||
+        error instanceof NetworkError ||
+        error instanceof AIProviderNoImplementedPaintError
+      )
+    ) {
+      Sentry.captureException(error) // unexpected error should be reported
     }
-    if (!(err instanceof ApiError || err instanceof NetworkError || err instanceof AIProviderNoImplementedPaintError)) {
-      Sentry.captureException(err) // unexpected error should be reported
+    let errorCode: number | undefined
+    if (error instanceof BaseError) {
+      errorCode = error.code
     }
-    let errorCode: number | undefined = undefined
-    if (err instanceof BaseError) {
-      errorCode = err.code
-    }
+
     newAssistantMsg = {
       ...newAssistantMsg,
       generating: false,
@@ -650,7 +684,7 @@ export async function submitNewUserMessage(params: {
       model: await getModelDisplayName(settings, 'chat'),
       contentParts: [{ type: 'text', text: '' }],
       errorCode,
-      error: `${err.message}`, // 这么写是为了避免类型问题
+      error: `${error.message}`, // 这么写是为了避免类型问题
       status: [],
     }
     if (needGenerating) {
@@ -689,7 +723,7 @@ export async function generate(sessionId: string, targetMsg: Message, options?: 
     // FIXME: 图片消息生成时，需要展示 placeholder
     // pictures: session.type === 'picture' ? createLoadingPictures(settings.imageGenerateNum) : targetMsg.pictures,
     cancel: undefined,
-    aiProvider: settings.aiProvider,
+    aiProvider: settings.provider,
     model: await getModelDisplayName(settings, session.type || 'chat'),
     style: session.type === 'picture' ? settings.dalleStyle : undefined,
     generating: true,
@@ -746,10 +780,14 @@ export async function generate(sessionId: string, targetMsg: Message, options?: 
           }
           modifyMessage(sessionId, targetMsg)
         }, 100)
+        if (!model.isSupportVision() && messages.some((m) => m.contentParts.some((c) => c.type === 'image'))) {
+          throw ChatboxAIAPIError.fromCodeName('model_not_support_image_2', 'model_not_support_image_2')
+        }
         await streamText(model, {
           messages: promptMsgs,
           onResultChangeWithCancel: throttledModifyMessage,
           webBrowsing: options?.webBrowsing,
+          providerOptions: settings.providerOptions,
         })
         targetMsg = {
           ...targetMsg,
@@ -775,6 +813,9 @@ export async function generate(sessionId: string, targetMsg: Message, options?: 
           targetMsg.status = []
           modifyMessage(sessionId, targetMsg, true)
         }
+        if (settings.imageGenerateNum === undefined) {
+          throw new Error(`Unknown session type: ${session.type}, generate failed`)
+        }
         await generateImage(model, {
           prompt,
           num: settings.imageGenerateNum,
@@ -797,27 +838,32 @@ export async function generate(sessionId: string, targetMsg: Message, options?: 
         throw new Error(`Unknown session type: ${session.type}, generate failed`)
     }
     appleAppStore.tickAfterMessageGenerated()
-  } catch (err: any) {
-    if (!(err instanceof Error)) {
-      err = new Error(`${err}`)
+  } catch (err: unknown) {
+    const error = !(err instanceof Error) ? new Error(`${err}`) : err
+    if (
+      !(
+        error instanceof ApiError ||
+        error instanceof NetworkError ||
+        error instanceof AIProviderNoImplementedPaintError
+      )
+    ) {
+      Sentry.captureException(error) // unexpected error should be reported
     }
-    if (!(err instanceof ApiError || err instanceof NetworkError || err instanceof AIProviderNoImplementedPaintError)) {
-      Sentry.captureException(err) // unexpected error should be reported
-    }
-    let errorCode: number | undefined = undefined
-    if (err instanceof BaseError) {
-      errorCode = err.code
+    let errorCode: number | undefined
+    if (error instanceof BaseError) {
+      errorCode = error.code
     }
     targetMsg = {
       ...targetMsg,
       generating: false,
       cancel: undefined,
       errorCode,
-      error: `${err.message}`, // 这么写是为了避免类型问题
+      error: `${error.message}`, // 这么写是为了避免类型问题
       errorExtra: {
-        aiProvider: settings.aiProvider,
-        host: err['host'],
-        responseBody: err.responseBody,
+        aiProvider: settings.provider,
+        host: error instanceof NetworkError ? error.host : undefined,
+        // biome-ignore lint/suspicious/noExplicitAny: FIXME: 找到有responseBody的error类型
+        responseBody: (error as any).responseBody,
       },
       status: [],
     }
@@ -862,7 +908,22 @@ async function _generateName(sessionId: string, modifyName: (sessionId: string, 
   if (!session) {
     return
   }
-  const settings = session.settings ? mergeSettings(globalSettings, session.settings, session.type) : globalSettings
+  const settings = {
+    ...globalSettings,
+    ...session.settings,
+    // 图片会话使用gpt-4o-mini模型，否则会使用DALL-E-3
+    ...(session.type === 'picture'
+      ? {
+          modelId: 'gpt-4o-mini',
+        }
+      : {}),
+    ...(globalSettings.threadNamingModel
+      ? {
+          provider: globalSettings.threadNamingModel.provider as ModelProvider,
+          modelId: globalSettings.threadNamingModel.model,
+        }
+      : {}),
+  }
   const configs = await platform.getConfig()
   try {
     const model = getModel(settings, configs)
@@ -881,7 +942,7 @@ async function _generateName(sessionId: string, modifyName: (sessionId: string, 
     name = name.replace(/['"“”]/g, '').replace(/<think>.*?<\/think>/g, '')
     // name = name.slice(0, 10)    // 限制名字长度
     modifyName(session.id, name)
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (!(e instanceof ApiError || e instanceof NetworkError)) {
       Sentry.captureException(e) // unexpected error should be reported
     }
@@ -910,17 +971,19 @@ export function clearConversationList(keepNum: number) {
 async function genMessageContext(settings: Settings, msgs: Message[]) {
   const {
     // openaiMaxContextTokens,
-    openaiMaxContextMessageCount,
     maxContextMessageCount,
   } = settings
   if (msgs.length === 0) {
     throw new Error('No messages to replay')
   }
+  if (maxContextMessageCount === undefined) {
+    throw new Error('maxContextMessageCount is not set')
+  }
   const head = msgs[0].role === 'system' ? msgs[0] : undefined
   if (head) {
     msgs = msgs.slice(1)
   }
-  let totalLen = head ? estimateTokensFromMessages([head]) : 0
+  let _totalLen = head ? estimateTokensFromMessages([head]) : 0
   let prompts: Message[] = []
   for (let i = msgs.length - 1; i >= 0; i--) {
     let msg = msgs[i]
@@ -930,15 +993,14 @@ async function genMessageContext(settings: Settings, msgs: Message[]) {
     }
     const size = estimateTokensFromMessages([msg]) + 20 // 20 作为预估的误差补偿
     // 只有 OpenAI 才支持上下文 tokens 数量限制
-    if (settings.aiProvider === 'openai') {
+    if (settings.provider === 'openai') {
       // if (size + totalLen > openaiMaxContextTokens) {
       //     break
       // }
     }
     if (
-      toBeRemoved_getContextMessageCount(openaiMaxContextMessageCount, maxContextMessageCount) <
-        Number.MAX_SAFE_INTEGER &&
-      prompts.length >= toBeRemoved_getContextMessageCount(openaiMaxContextMessageCount, maxContextMessageCount) + 1 // +1是为了保留用户最后一条输入消息
+      maxContextMessageCount < Number.MAX_SAFE_INTEGER &&
+      prompts.length >= maxContextMessageCount + 1 // +1是为了保留用户最后一条输入消息
     ) {
       break
     }
@@ -954,7 +1016,7 @@ async function genMessageContext(settings: Settings, msgs: Message[]) {
             attachment += `<FILE_INDEX>File ${fileIndex + 1}</FILE_INDEX>\n`
             attachment += `<FILE_NAME>${file.name}</FILE_NAME>\n`
             attachment += '<FILE_CONTENT>\n'
-            attachment += content + '\n'
+            attachment += `${content}\n`
             attachment += '</FILE_CONTENT>\n'
             attachment += `</ATTACHMENT_FILE>\n`
             msg = mergeMessages(msg, createMessage(msg.role, attachment))
@@ -973,7 +1035,7 @@ async function genMessageContext(settings: Settings, msgs: Message[]) {
             attachment += `<LINK_INDEX>${linkIndex + 1}</LINK_INDEX>\n`
             attachment += `<LINK_URL>${link.url}</LINK_URL>\n`
             attachment += `<LINK_CONTENT>\n`
-            attachment += content + '\n'
+            attachment += `${content}\n`
             attachment += '</LINK_CONTENT>\n'
             attachment += `</ATTACHMENT_LINK>\n`
             msg = mergeMessages(msg, createMessage(msg.role, attachment))
@@ -983,7 +1045,7 @@ async function genMessageContext(settings: Settings, msgs: Message[]) {
     }
 
     prompts = [msg, ...prompts]
-    totalLen += size
+    _totalLen += size
   }
   if (head) {
     prompts = [head, ...prompts]
@@ -994,10 +1056,22 @@ async function genMessageContext(settings: Settings, msgs: Message[]) {
 export function initEmptyChatSession(): Omit<Session, 'id'> {
   const store = getDefaultStore()
   const settings = store.get(atoms.settingsAtom)
+  const chatSessionSettings = store.get(atoms.chatSessionSettingsAtom)
   const newSession: Omit<Session, 'id'> = {
     name: 'Untitled',
     type: 'chat',
     messages: [],
+    settings: {
+      maxContextMessageCount: settings.maxContextMessageCount || 6,
+      temperature: settings.temperature || undefined,
+      topP: settings.topP || undefined,
+      ...(settings.defaultChatModel
+        ? {
+            provider: settings.defaultChatModel.provider,
+            modelId: settings.defaultChatModel.model,
+          }
+        : chatSessionSettings),
+    },
   }
   if (settings.defaultPrompt) {
     newSession.messages.push(createMessage('system', settings.defaultPrompt || defaults.getDefaultPrompt()))
@@ -1006,10 +1080,15 @@ export function initEmptyChatSession(): Omit<Session, 'id'> {
 }
 
 export function initEmptyPictureSession(): Omit<Session, 'id'> {
+  const store = getDefaultStore()
+  const pictureSessionSettings = store.get(atoms.pictureSessionSettingsAtom)
   return {
     name: 'Untitled',
     type: 'picture',
     messages: [createMessage('system', i18n.t('Image Creator Intro') || '')],
+    settings: {
+      ...pictureSessionSettings,
+    },
   }
 }
 
@@ -1058,54 +1137,63 @@ export function getMessageThreadContext(sessionId: string, messageId: string): M
   return []
 }
 
+// export function mergeSettings(
+//   globalSettings: Settings,
+//   sessionSetting: SessionSettings,
+//   sessionType?: 'picture' | 'chat'
+// ): Settings {
+//   let specialSettings = sessionSetting
+//   // 过滤掉会话专属设置中不应该存在的设置项，为了兼容旧版本数据和防止疏漏
+//   switch (sessionType) {
+//     case 'picture':
+//       specialSettings = pickPictureSettings(specialSettings as Settings)
+//       break
+//     case undefined:
+//     case 'chat':
+//     default:
+//       specialSettings = settings2SessionSettings(specialSettings as Settings)
+//       break
+//   }
+//   specialSettings = omit(specialSettings) // 需要 omit 来去除 undefined，否则会覆盖掉全局配置
+//   const ret = {
+//     ...globalSettings,
+//     ...specialSettings, // 会话配置优先级高于全局配置
+//   }
+//   // 对于自定义模型提供方，只有模型 model 可以被会话配置覆盖
+//   if (ret.customProviders) {
+//     ret.customProviders = globalSettings.customProviders.map((provider) => {
+//       if (specialSettings.customProviders) {
+//         const specialProvider = specialSettings.customProviders.find((p) => p.id === provider.id)
+//         if (specialProvider) {
+//           return {
+//             ...provider,
+//             model: specialProvider.model, // model 字段的会话配置优先级高于全局配置
+//           }
+//         }
+//       }
+//       return provider
+//     })
+//   }
+//   return ret
+// }
+
 export function mergeSettings(
   globalSettings: Settings,
-  sessionSetting: Partial<ModelSettings>,
+  sessionSetting: SessionSettings,
   sessionType?: 'picture' | 'chat'
 ): Settings {
-  let specialSettings = sessionSetting
-  // 过滤掉会话专属设置中不应该存在的设置项，为了兼容旧版本数据和防止疏漏
-  switch (sessionType) {
-    case 'picture':
-      specialSettings = pickPictureSettings(specialSettings as Settings)
-      break
-    case undefined:
-    case 'chat':
-    default:
-      specialSettings = settings2SessionSettings(specialSettings as Settings)
-      break
-  }
-  specialSettings = omit(specialSettings) // 需要 omit 来去除 undefined，否则会覆盖掉全局配置
-  const ret = {
+  return {
     ...globalSettings,
-    ...specialSettings, // 会话配置优先级高于全局配置
-  }
-  // 对于自定义模型提供方，只有模型 model 可以被会话配置覆盖
-  if (ret.customProviders) {
-    ret.customProviders = globalSettings.customProviders.map((provider) => {
-      if (specialSettings.customProviders) {
-        const specialProvider = specialSettings.customProviders.find((p) => p.id === provider.id)
-        if (specialProvider) {
-          return {
-            ...provider,
-            model: specialProvider.model, // model 字段的会话配置优先级高于全局配置
-          }
+    ...(sessionType === 'picture'
+      ? {
+          imageGenerateNum: defaults.pictureSessionSettings().imageGenerateNum,
+          dalleStyle: defaults.pictureSessionSettings().dalleStyle,
         }
-      }
-      return provider
-    })
+      : {
+          maxContextMessageCount: defaults.chatSessionSettings().maxContextMessageCount,
+        }),
+    ...sessionSetting,
   }
-  return ret
-}
-
-function omit(obj: any) {
-  const ret = { ...obj }
-  for (const key of Object.keys(ret)) {
-    if (ret[key] === undefined) {
-      delete ret[key]
-    }
-  }
-  return ret
 }
 
 export function getCurrentSessionMergedSettings() {
@@ -1119,7 +1207,7 @@ export function getCurrentSessionMergedSettings() {
 }
 
 export async function exportChat(session: Session, scope: ExportChatScope, format: ExportChatFormat) {
-  const threads: SessionThread[] = scope == 'all_threads' ? session.threads || [] : []
+  const threads: SessionThread[] = scope === 'all_threads' ? session.threads || [] : []
   threads.push({
     id: session.id,
     name: session.threadName || session.name,
@@ -1127,13 +1215,13 @@ export async function exportChat(session: Session, scope: ExportChatScope, forma
     createdAt: Date.now(),
   })
 
-  if (format == 'Markdown') {
+  if (format === 'Markdown') {
     const content = formatChatAsMarkdown(session.name, threads)
     platform.exporter.exportTextFile(`${session.name}.md`, content)
-  } else if (format == 'TXT') {
+  } else if (format === 'TXT') {
     const content = formatChatAsTxt(session.name, threads)
     platform.exporter.exportTextFile(`${session.name}.txt`, content)
-  } else if (format == 'HTML') {
+  } else if (format === 'HTML') {
     const content = await formatChatAsHtml(session.name, threads)
     platform.exporter.exportTextFile(`${session.name}.html`, content)
   }

@@ -60,3 +60,42 @@ export function normalizeOpenAIApiHostAndPath(options: { apiHost?: string; apiPa
   }
   return { apiHost, apiPath }
 }
+
+export function normalizeClaudeHost(apiHost: string) {
+  apiHost = apiHost.trim()
+  if (apiHost === 'https://api.anthropic.com') {
+    apiHost = `${apiHost}/v1`
+  }
+  if (apiHost.endsWith('/')) {
+    apiHost = apiHost.slice(0, apiHost.length - 1)
+  }
+  return {
+    apiHost,
+    apiPath: '/messages',
+  }
+}
+
+export function normalizeGeminiHost(apiHost: string) {
+  apiHost = apiHost.trim()
+  if (apiHost.endsWith('/')) {
+    apiHost = apiHost.slice(0, apiHost.length - 1)
+  }
+  apiHost = `${apiHost}/v1beta`
+  return {
+    apiHost,
+    apiPath: '/models/[model]',
+  }
+}
+
+export function normalizeAzureEndpoint(endpoint: string) {
+  let origin = endpoint
+  try {
+    origin = new URL(endpoint.trim()).origin
+  } catch (e) {
+    origin = `https://${origin}.openai.azure.com`
+  }
+  return {
+    endpoint: origin + '/openai/deployments',
+    apiPath: '/chat/completions',
+  }
+}

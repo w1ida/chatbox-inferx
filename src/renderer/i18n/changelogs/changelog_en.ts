@@ -1,4 +1,76 @@
 const changelog = `
+### v1.14.3 - 2025.06.28
+
+1. Fixed issue where exporting data on mobile would cause a crash
+2. Added global model parameter settings
+3. Fixed some markdown and Latex display issues
+4. Fixed issue where some OpenRouter models didn't show thinking content
+5. Compatible with MCP environment variables containing = characterss
+
+Thanks to @jakub-nezasa for their contributions
+
+### v1.14.2 - 2025.06.19
+
+1. Fixed issue where pressing Enter for a new line on mobile would send the message immediately
+2. Fixed issue where send button was disabled on some devices
+3. Adjusted new thread button size
+
+### v1.14.1 - 2025.06.16
+
+1. Fixed issue where provider settings were lost after restarting the app
+
+### v1.14.0 - 2025.06.16
+
+1. Desktop support MCP
+2. New home page design
+3. Add VolcEngine model provider
+4. Fix issue where custom temperature was invalid in Azure, now you can set the temperature of o-series models to 1
+5. Fix shortcut key error on non-QWERT keyboard
+
+Thanks to @Fr0benius for their contributions
+
+### v1.13.4 - 2025.06.09
+
+1. Fixed storage performance issue
+2. Fixed issue where clearing conversation list in English language couldn't fill in the number of conversations to keep
+
+### v1.13.3 - 2025.06.08
+
+1. Fixed issue where custom provider couldn't set API Path
+2. OpenAI, Claude, Gemini models support setting thinking effort parameter
+
+### v1.13.2 - 2025.05.30
+
+1. Fixed window can't be dragged on session title bar
+
+### v1.13.1 - 2025.05.28
+
+1. Refactor settings UI
+2. Quick switch to different model provider in chat session
+3. Fix a bug in moving thread to session
+4. Fix a bug in conversation search
+5. Fix a bug in auto scroll issue
+6. Optimize window height calculation performance, improve mobile keyboard pop-up speed
+7. Fix some style issues on small screen
+
+Thanks to @xiaoxiaowesley, @chaoliu719, @Jesse205, @trrahul for their contributions
+
+### v1.12.3 - 2025.05.08
+
+1. Fixed issue where data was lost when upgrading from 1.9.x version on mobile
+2. Mac: Use Command key instead of Ctrl key for shortcut functions
+
+### v1.12.2 - 2025.04.29
+
+1. Fixed initialization data migration performance issue
+
+### v1.12.1 - 2025.04.28
+
+1. Fixed Latex rendering issue
+2. Fixed left sidebar top drag issue
+3. Fixed ChatboxAI error message display
+4. Added initialization process log display
+
 ### v1.12.0 - 2025.04.24
 
 1. Chatbox AI supports Gemini multimodal output
@@ -6,6 +78,7 @@ const changelog = `
 3. Improved desktop UI, removing native titlebar
 4. Optimized mobile storage performance
 5. Import backups now merge conversation lists instead of overwriting
+6. Update new thread icon
 
 ### v1.11.12 - 2025.04.15
 

@@ -6,6 +6,8 @@ import * as atoms from '../stores/atoms'
 import * as sessionActions from '../stores/sessionActions'
 import * as dom from './dom'
 import { useIsSmallScreen } from './useScreenChange'
+import { getOS } from '../packages/navigator'
+import { router } from '@/router'
 
 type NavigationCallback = (path: string) => void
 
@@ -37,11 +39,13 @@ function keyboardShortcut(e: KeyboardEvent, navigate?: NavigationCallback) {
   const shift = e.shiftKey
   const altOrOption = e.altKey
 
-  if (e.code === 'KeyI' && ctrlOrCmd) {
+  const ctrlKey = getOS() === 'Mac' ? e.metaKey : e.ctrlKey
+
+  if (e.key === 'i' && ctrlKey) {
     dom.focusMessageInput()
     return
   }
-  if (e.code === 'KeyE' && ctrlOrCmd) {
+  if (e.key === 'e' && ctrlKey) {
     dom.focusMessageInput()
     const store = getDefaultStore()
     store.set(atoms.inputBoxWebBrowsingModeAtom, (v) => !v)
@@ -49,40 +53,42 @@ function keyboardShortcut(e: KeyboardEvent, navigate?: NavigationCallback) {
   }
 
   // 创建新会话 CmdOrCtrl + N
-  if (e.code === 'KeyN' && ctrlOrCmd && !shift) {
-    sessionActions.createEmpty('chat')
+  if (e.key === 'n' && ctrlKey && !shift) {
+    router.navigate({
+      to: '/',
+    })
     return
   }
   // 创建新图片会话 CmdOrCtrl + Shift + N
-  if (e.code === 'KeyN' && ctrlOrCmd && shift) {
+  if (e.key === 'n' && ctrlKey && shift) {
     sessionActions.createEmpty('picture')
     return
   }
   // 归档当前会话的上下文。
-  // if (e.code === 'KeyR' && altOrOption) {
+  // if (e.key === 'r' && altOrOption) {
   //     e.preventDefault()
   //     sessionActions.startNewThread()
   //     return
   // }
-  if (e.code === 'KeyR' && ctrlOrCmd) {
+  if (e.key === 'r' && ctrlKey) {
     e.preventDefault()
     sessionActions.startNewThread()
     return
   }
 
-  if (e.code === 'Tab' && ctrlOrCmd && !shift) {
+  if (e.code === 'Tab' && ctrlKey && !shift) {
     sessionActions.switchToNext()
   }
-  if (e.code === 'Tab' && ctrlOrCmd && shift) {
+  if (e.code === 'Tab' && ctrlKey && shift) {
     sessionActions.switchToNext(true)
   }
   for (let i = 1; i <= 9; i++) {
-    if (e.code === `Digit${i}` && ctrlOrCmd) {
+    if (e.code === `Digit${i}` && ctrlKey) {
       sessionActions.switchToIndex(i - 1)
     }
   }
 
-  if (e.code === 'KeyK' && ctrlOrCmd) {
+  if (e.key === 'k' && ctrlKey) {
     const store = getDefaultStore()
     const openSearchDialog = store.get(atoms.openSearchDialogAtom)
     if (openSearchDialog) {
@@ -91,7 +97,7 @@ function keyboardShortcut(e: KeyboardEvent, navigate?: NavigationCallback) {
       store.set(atoms.openSearchDialogAtom, true)
     }
   }
-  if (e.code === 'Comma' && ctrlOrCmd && navigate) {
+  if (e.key === ',' && e.metaKey && navigate) {
     e.preventDefault()
     navigate('/settings')
     return

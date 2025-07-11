@@ -1,7 +1,9 @@
+import { getLogger } from '@/lib/utils'
 import { defaultSessionsForCN, defaultSessionsForEN } from '@/packages/initial_data'
 import platform from '@/platform'
 import storage from '@/storage'
 import { StorageKey, StorageKeyGenerator } from '@/storage/StoreStorage'
+import { getMessageText, migrateMessage } from '@/utils/message'
 import { arrayMove } from '@dnd-kit/sortable'
 import { getDefaultStore } from 'jotai'
 import { omit, pick } from 'lodash'
@@ -9,10 +11,10 @@ import { copyMessage, copyThreads, Message, Session, SessionMeta } from 'src/sha
 import { v4 as uuidv4 } from 'uuid'
 import { migrateSession, sortSessions } from '../utils/session-utils'
 import * as atoms from './atoms'
-import pMap from 'p-map'
 import { createSessionAtom } from './atoms'
-import { getMessageText } from '@/utils/message'
-import { CurrentVersion } from './migration'
+
+const log = getLogger('sessionStorageMutations')
+
 // session 的读写都放到这里，统一管理
 
 export function getSession(sessionId: string) {
@@ -25,12 +27,22 @@ export function getSession(sessionId: string) {
   return migrateSession(session)
 }
 
-export function createSession(session: Omit<Session, 'id'>, previousId?: string) {
-  const s = { ...session, id: uuidv4() }
-  const sMeta = getSessionMeta(s)
+export async function createSession(session: Omit<Session, 'id'>, previousId?: string) {
   const store = getDefaultStore()
+  const chatSessionSettings = store.get(atoms.chatSessionSettingsAtom)
+  const pictureSessionSettings = store.get(atoms.pictureSessionSettingsAtom)
+  const s = {
+    ...session,
+    id: uuidv4(),
+    settings: {
+      ...(session.type === 'picture' ? pictureSessionSettings : chatSessionSettings),
+      ...session.settings,
+    },
+  }
+  const sMeta = getSessionMeta(s)
   // 直接写入 storage, 因为动态创建的 atom 无法立即写入
-  storage.setItemNow(StorageKeyGenerator.session(s.id), s)
+  await storage.setItemNow(StorageKeyGenerator.session(s.id), s)
+
   store.set(atoms.sessionsListAtom, (sessions) => {
     if (previousId) {
       let previouseSessionIndex = sessions.findIndex((s) => s.id === previousId)
@@ -72,22 +84,24 @@ export function reorderSessions(oldIndex: number, newIndex: number) {
   })
 }
 
-export function copySession(
+export async function copySession(
   sourceMeta: SessionMeta & {
+    name?: Session['name']
     messages?: Session['messages']
     threads?: Session['threads']
     threadName?: Session['threadName']
   }
-): Session {
+) {
   const source = getSession(sourceMeta.id)!
   const newSession = {
     ...omit(source, 'id', 'messages', 'threads', 'messageForksHash'),
+    ...(sourceMeta.name ? { name: sourceMeta.name } : {}),
     messages: sourceMeta.messages ? sourceMeta.messages.map(copyMessage) : source.messages.map(copyMessage),
     threads: sourceMeta.threads ? copyThreads(sourceMeta.threads) : source.threads,
     messageForksHash: undefined, // 不复制分叉数据
     ...(sourceMeta.threadName ? { threadName: sourceMeta.threadName } : {}),
   }
-  return createSession(newSession, source.id)
+  return await createSession(newSession, source.id)
 }
 
 export function getSessionMeta(session: SessionMeta) {
@@ -96,28 +110,33 @@ export function getSessionMeta(session: SessionMeta) {
 
 async function initPresetSessions() {
   const lang = await platform.getLocale().catch((e) => 'en')
-  const defaultSessions = lang.startsWith('zh') ? defaultSessionsForCN : defaultSessionsForEN
+  log.info(`initPresetSessions, lang: ${lang}`)
 
-  await pMap(defaultSessions, (session) => storage.setItemNow(StorageKeyGenerator.session(session.id), session), {
-    concurrency: 5,
-  })
+  const defaultSessions = lang.startsWith('zh') ? defaultSessionsForCN : defaultSessionsForEN
+  log.info(`initPresetSessions, defaultSessions: ${defaultSessions.length}`)
+
+  for (const session of defaultSessions) {
+    await storage.setItemNow(StorageKeyGenerator.session(session.id), session)
+  }
+  log.info(`initPresetSessions, set sessions done`)
+
   const sessionList = defaultSessions.map(getSessionMeta)
+  log.info(`initPresetSessions, sessionList: ${sessionList.length}`)
+
   await storage.setItemNow(StorageKey.ChatSessionsList, sessionList)
+  log.info(`initPresetSessions, set sessionList done`)
+
   return sessionList
 }
 
 export async function initSessionsIfNeeded() {
+  // 已经做过 migration，只需要检查是否存在 sessionList
   const sessionList = await storage.getItem(StorageKey.ChatSessionsList, [])
   if (sessionList.length > 0) {
     return
   }
-  const sessions = await storage.getItem(StorageKey.ChatSessions, [])
-  if (sessions.length > 0) {
-    return
-  }
+
   const newSessionList = await initPresetSessions()
-  // 初始化之后，立即写入版本号，防止后续执行 migration
-  await storage.setItemNow(StorageKey.ConfigVersion, CurrentVersion)
 
   // 同时写入 atom，避免后续被覆盖
   const store = getDefaultStore()
@@ -131,9 +150,9 @@ export function clearConversations(keepNum: number) {
     .slice(keepNum)
     .map((s) => s.id) // 这里必须用 id，因为使用写入 sorted 版本会改变顺序
   store.set(atoms.sessionsListAtom, (sessions) => sessions.filter((s) => !removeSessionIds.includes(s.id)))
-  return pMap(removeSessionIds, (sessionId) => storage.removeItem(StorageKeyGenerator.session(sessionId)), {
-    concurrency: 5,
-  })
+  for (const sessionId of removeSessionIds) {
+    storage.removeItem(StorageKeyGenerator.session(sessionId))
+  }
 }
 
 function _searchSessions(regexp: RegExp, session: Session) {
@@ -156,7 +175,7 @@ function _searchSessions(regexp: RegExp, session: Session) {
       }
     }
   }
-  return matchedMessages
+  return matchedMessages.map((m) => migrateMessage(m))
 }
 
 export async function searchSessions(searchInput: string, sessionId?: string, onResult?: (result: Session[]) => void) {

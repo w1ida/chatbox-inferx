@@ -1,76 +1,48 @@
 import { apiRequest } from '@/utils/request'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { ModelMeta } from 'src/shared/types'
-import AbstractAISDKModel from './abstract-ai-sdk'
-import { ModelHelpers } from './types'
+import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic'
+import { ProviderModelInfo } from 'src/shared/types'
+import AbstractAISDKModel, { CallSettings } from './abstract-ai-sdk'
 import { ApiError } from './errors'
-
-// https://docs.anthropic.com/claude/docs/models-overview
-const modelConfig: ModelMeta = {
-  'claude-3-7-sonnet-latest': {
-    contextWindow: 200_000,
-    maxOutput: 8192,
-    vision: true,
-    functionCalling: true,
-  },
-  'claude-3-5-sonnet-latest': {
-    contextWindow: 200_000,
-    maxOutput: 8192,
-    vision: true,
-  },
-  'claude-3-5-haiku-latest': {
-    contextWindow: 200_000,
-    vision: true,
-  },
-  'claude-3-opus-latest': {
-    contextWindow: 200_000,
-    maxOutput: 8192,
-    vision: true,
-  },
-}
-
-export const claudeModels = Object.keys(modelConfig)
-
-const helpers: ModelHelpers = {
-  isModelSupportVision: (model: string) => {
-    return true
-  },
-  isModelSupportToolUse: (model: string) => {
-    return true
-  },
-}
+import { normalizeClaudeHost } from './llm_utils'
+import { CallChatCompletionOptions } from './types'
 
 interface Options {
   claudeApiKey: string
   claudeApiHost: string
-  claudeModel: string
+  model: ProviderModelInfo
 }
 
 export default class Claude extends AbstractAISDKModel {
   public name = 'Claude'
-  public static helpers = helpers
 
   constructor(public options: Options) {
-    super()
+    super(options)
   }
 
   protected getChatModel() {
-    let host = this.options.claudeApiHost
-    if (host === 'https://api.anthropic.com') {
-      host = `${host}/v1`
-    }
     const provider = createAnthropic({
-      baseURL: host,
+      baseURL: normalizeClaudeHost(this.options.claudeApiHost).apiHost,
       apiKey: this.options.claudeApiKey,
       headers: {
         'anthropic-dangerous-direct-browser-access': 'true',
       },
     })
-    return provider.languageModel(this.options.claudeModel)
+    return provider.languageModel(this.options.model.modelId)
   }
 
-  isSupportToolUse() {
-    return helpers.isModelSupportToolUse(this.options.claudeModel)
+  protected getCallSettings(options: CallChatCompletionOptions): CallSettings {
+    const isModelSupportReasoning = this.isSupportReasoning()
+    let providerOptions = {} as { anthropic: AnthropicProviderOptions }
+    if (isModelSupportReasoning) {
+      providerOptions = {
+        anthropic: {
+          ...(options.providerOptions?.claude || {}),
+        },
+      }
+    }
+    return {
+      providerOptions,
+    }
   }
 
   // https://docs.anthropic.com/en/docs/api/models

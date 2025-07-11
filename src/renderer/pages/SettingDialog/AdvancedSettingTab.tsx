@@ -218,6 +218,9 @@ function ExportAndImport(props: { onCancel: () => void }) {
               setData: async (key, value) => {
                 importData[key] = value
               },
+              setAll: async (data) => {
+                Object.assign(importData, data)
+              },
             },
             false
           )
@@ -227,10 +230,13 @@ function ExportAndImport(props: { onCancel: () => void }) {
           await storage.setAll({
             ...previousData, // 有时候 importData 在导出时没有包含一些数据，这些数据应该保持原样
             ...importData,
-            [StorageKey.ChatSessionsList]: uniqBy([
-              ...(previousData[StorageKey.ChatSessionsList] || []),
-              ...(importData[StorageKey.ChatSessionsList] || []),
-            ], 'id'),
+            [StorageKey.ChatSessionsList]: uniqBy(
+              [
+                ...(previousData[StorageKey.ChatSessionsList] || []),
+                ...(importData[StorageKey.ChatSessionsList] || []),
+              ],
+              'id'
+            ),
           })
           props.onCancel() // 导出成功后立即关闭设置窗口，防止用户点击保存、导致设置数据被覆盖
           platform.relaunch() // 重启应用以生效

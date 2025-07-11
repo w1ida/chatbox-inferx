@@ -25,6 +25,9 @@ export function sliceTextWithEllipsis(text: string, maxLength: number) {
   return head + tail
 }
 
+// 初始化后，dev 模式可以收集到 renderer 层日志，但 electron 打包后无法正常工作
+// log.initialize()
+
 export function getLogger(logId: string) {
   const logger = log.create({ logId })
   logger.transports.console.format = '{h}:{i}:{s}.{ms} › [{logId}] › {text}'

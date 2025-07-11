@@ -1,7 +1,6 @@
 import { getDefaultStore } from 'jotai'
+import { ModelProvider, ModelProviderEnum, Settings } from '../../shared/types'
 import * as atoms from './atoms'
-import * as defaults from '../../shared/defaults'
-import { Settings, ModelProvider, CustomProvider } from '../../shared/types'
 
 export function modify(update: Partial<Settings>) {
   const store = getDefaultStore()
@@ -14,53 +13,31 @@ export function modify(update: Partial<Settings>) {
 export function needEditSetting() {
   const store = getDefaultStore()
   const settings = store.get(atoms.settingsAtom)
-  if (settings.aiProvider === 'chatbox-ai' && !settings.licenseKey) {
-    return true
+
+  // 激活了chatbox ai
+  if (settings.licenseKey) {
+    return false
   }
-  if (
-    settings.aiProvider === 'openai' &&
-    settings.openaiKey === '' &&
-    settings.apiHost === defaults.settings().apiHost
-  ) {
-    return true
+
+  if (settings.providers && Object.keys(settings.providers).length > 0) {
+    const providers = settings.providers
+    const keys = Object.keys(settings.providers)
+    // 有任何一个供应商配置了api key
+    if (keys.filter((key) => !!providers[key].apiKey).length > 0) {
+      return false
+    }
+    // Ollama / LMStudio/ custom provider 配置了至少一个模型
+    if (
+      keys.filter(
+        (key) =>
+          (key === ModelProviderEnum.Ollama || key === ModelProviderEnum.LMStudio || key.startsWith('custom-provider')) &&
+          providers[key].models?.length
+      ).length > 0
+    ) {
+      return false
+    }
   }
-  if (
-    settings.aiProvider === 'azure' &&
-    (settings.azureApikey === '' || settings.azureDeploymentName === '' || settings.azureEndpoint === '')
-  ) {
-    return true
-  }
-  if (settings.aiProvider === 'chatglm-6b' && !settings.chatglmApiKey) {
-    return true
-  }
-  if (settings.aiProvider === 'claude' && !settings.claudeApiKey) {
-    return true
-  }
-  if (settings.aiProvider === 'gemini' && !settings.geminiAPIKey) {
-    return true
-  }
-  if (settings.aiProvider === 'ollama' && !settings.ollamaModel) {
-    return true
-  }
-  if (settings.aiProvider === 'groq' && !settings.groqAPIKey) {
-    return true
-  }
-  if (settings.aiProvider === 'deepseek' && !settings.deepseekAPIKey) {
-    return true
-  }
-  if (settings.aiProvider === 'siliconflow' && !settings.siliconCloudKey) {
-    return true
-  }
-  if (settings.aiProvider === 'lm-studio' && !settings.lmStudioModel) {
-    return true
-  }
-  if (settings.aiProvider === 'perplexity' && !settings.perplexityApiKey) {
-    return true
-  }
-  if (settings.aiProvider === 'xAI' && !settings.xAIKey) {
-    return true
-  }
-  return false
+  return true
 }
 
 export function getLanguage() {
@@ -110,20 +87,21 @@ export function getExtensionSettings() {
 }
 
 export function createCustomProvider() {
-  const newCustomProvider: CustomProvider = {
-    id: `custom-provider-${Date.now()}`,
-    name: 'Untitled',
-    api: 'openai',
-    host: 'https://api.openai.com/v1',
-    path: '/chat/completions',
-    key: '',
-    model: 'gpt-4o',
-  }
-  const store = getDefaultStore()
-  store.set(atoms.settingsAtom, (settings) => ({
-    ...settings,
-    aiProvider: ModelProvider.Custom,
-    selectedCustomProviderId: newCustomProvider.id,
-    customProviders: [newCustomProvider, ...settings.customProviders],
-  }))
+  // TODO: Uncomment and implement this function
+  // const newCustomProvider: CustomProvider = {
+  //   id: `custom-provider-${Date.now()}`,
+  //   name: 'Untitled',
+  //   api: 'openai',
+  //   host: 'https://api.openai.com/v1',
+  //   path: '/chat/completions',
+  //   key: '',
+  //   model: 'gpt-4o',
+  // }
+  // const store = getDefaultStore()
+  // store.set(atoms.settingsAtom, (settings) => ({
+  //   ...settings,
+  //   aiProvider: ModelProviderEnum.Custom,
+  //   selectedCustomProviderId: newCustomProvider.id,
+  //   customProviders: [newCustomProvider, ...settings.customProviders],
+  // }))
 }

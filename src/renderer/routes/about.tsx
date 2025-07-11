@@ -1,154 +1,241 @@
-import LogoXHS from '@/components/icons/LogoXHS'
-import LinkTargetBlank from '@/components/Link'
-import Markdown from '@/components/Markdown'
-import Page from '@/components/Page'
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
-import WarningAmberIcon from '@mui/icons-material/WarningAmber'
-import { Alert, Box, Button, useTheme } from '@mui/material'
+import { Anchor, Box, Button, Container, Divider, Flex, Image, Popover, Stack, Text, Title } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
+import {
+  IconAlertTriangle,
+  IconChevronRight,
+  IconClipboard,
+  IconFileText,
+  IconHome,
+  IconMail,
+  IconMessage2,
+  IconPencil,
+} from '@tabler/icons-react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useAtom, useAtomValue } from 'jotai'
-import { MouseEvent, useState } from 'react'
+import { useAtomValue } from 'jotai'
+import { Fragment, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import useVersion from '../hooks/useVersion'
-import * as i18n from '../i18n'
-import platform from '../platform'
-import iconPNG from '../static/icon.png'
-import * as atoms from '../stores/atoms'
+import BrandGithub from '@/components/icons/BrandGithub'
+import BrandRedNote from '@/components/icons/BrandRedNote'
+import BrandWechat from '@/components/icons/BrandWechat'
+import Page from '@/components/Page'
+import { useIsSmallScreen } from '@/hooks/useScreenChange'
+import useVersion from '@/hooks/useVersion'
+import platform from '@/platform'
+import iconPNG from '@/static/icon.png'
+import IMG_WECHAT_QRCODE from '@/static/wechat_qrcode.png'
+import { languageAtom } from '@/stores/atoms'
 
 export const Route = createFileRoute('/about')({
-  component: About,
+  component: RouteComponent,
 })
 
-function About() {
+function RouteComponent() {
   const { t, i18n: _i18n } = useTranslation()
-  const theme = useTheme()
-  const [open, setOpen] = useAtom(atoms.openAboutDialogAtom)
-  const language = useAtomValue(atoms.languageAtom)
-  const versionHook = useVersion()
-  // const [sponsorBanners, setSponsorBanners] = useState<SponsorAboutBanner[]>([])
-  // useEffect(() => {
-  //     if (open) {
-  //         remote.listSponsorAboutBanner().then(setSponsorBanners)
-  //         trackingEvent('about_window', { event_category: 'screen_view' })
-  //     } else {
-  //         setSponsorBanners([])
-  //     }
-  // }, [open])
-  const handleClose = () => {
-    setOpen(false)
-  }
-
-  const [wechatPopoverAnchorEl, setWechatPopoverAnchorEl] = useState<HTMLElement | null>(null)
-
-  const handleWechatPopoverOpen = (event: MouseEvent<HTMLElement>) => {
-    setWechatPopoverAnchorEl(event.currentTarget)
-  }
-
-  const handleWechatPopoverClose = () => {
-    setWechatPopoverAnchorEl(null)
-  }
-
-  const wechatPopoverOpen = Boolean(wechatPopoverAnchorEl)
+  const version = useVersion()
+  const language = useAtomValue(languageAtom)
+  const isSmallScreen = useIsSmallScreen()
 
   return (
-    <Page title="About Chatbox">
-      <div className="max-w-3xl mx-auto">
-        <Box sx={{ textAlign: 'center', padding: '0 20px' }}>
-          <img src={iconPNG} style={{ width: '100px', margin: 0, display: 'inline-block' }} />
-          <h3 style={{ margin: '4px 0 5px 0' }}>
-            Chatbox
-            {/\d/.test(versionHook.version) ? `(v${versionHook.version})` : ''}
-          </h3>
-          <p className="p-0 m-0">{t('about-slogan')}</p>
-          <p className="p-0 m-0 opacity-60 text-xs">{t('about-introduction')}</p>
-          <p className="p-0 m-0 text-center text-xs opacity-70">
-            <LinkTargetBlank
-              href="https://chatboxai.app/privacy"
-              className="mx-2 no-underline hover:underline"
-              style={{ color: theme.palette.text.primary }}
-            >
-              Privacy Policy
-            </LinkTargetBlank>
-            <LinkTargetBlank
-              href="https://chatboxai.app/terms"
-              className="mx-2 no-underline hover:underline"
-              style={{ color: theme.palette.text.primary }}
-            >
-              User Terms
-            </LinkTargetBlank>
-          </p>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-          className="mt-1 mb-4"
-        >
-          <Button
-            variant="outlined"
-            onClick={() => platform.openLink(`https://chatboxai.app/redirect_app/check_update/${language}`)}
-          >
-            {t('Check Update')}
-          </Button>
-          <Button
-            variant="outlined"
-            sx={{ margin: '4px' }}
-            onClick={() => platform.openLink(`https://chatboxai.app/redirect_app/homepage/${language}`)}
-          >
-            {t('Homepage')}
-          </Button>
-          <Button
-            variant="outlined"
-            sx={{ margin: '4px' }}
-            onClick={() => platform.openLink(`https://chatboxai.app/redirect_app/feedback/${language}`)}
-          >
-            {t('Feedback')}
-          </Button>
-          <Button
-            variant="outlined"
-            sx={{ margin: '4px' }}
-            onClick={() =>
-              platform.openLink(
-                `https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/chatbox-ai-service-faqs`
-              )
-            }
-          >
-            {t('FAQs')}
-          </Button>
-        </Box>
-        <Box className="flex flex-row gap-4 justify-center items-center mb-6">
-          <a href="https://www.xiaohongshu.com/user/profile/67b581b6000000000e01d11f" target="_blank">
-            <LogoXHS className="w-6 h-6" />
-          </a>
-          <a href="#" onClick={() => platform.openLink(`mailto://hi@chatboxai.com`)}>
-            <EmailOutlinedIcon className="w-6 h-6 text-[#666666]" />
-          </a>
-        </Box>
-        {_i18n.language === 'zh-Hans' ? (
-          <Alert className="mx-6 px-6 mb-6 justify-center" severity="warning" icon={false}>
-            <h3 className="flex flex-row items-center justify-center gap-2 mb-1 mt-2">
-              <WarningAmberIcon color="warning" />
-              正版提示
-            </h3>
-            <p className="leading-6">
-              近期出现了附带 Chatbox 的所谓一键本地部署 DeepSeek 的付费捆绑软件安装包。
-              <br />
-              Chatbox客户端本身是开源免费软件，只在官网(chatboxai.app)销售托管AI服务。
-              <br />
-              如果发现上当受骗，请尽快在对应支付平台如微信、支付宝申请退款。
-            </p>
-          </Alert>
-        ) : null}
-        <Box>
-          <h4 className="text-center mb-1 mt-2">{t('Changelog')}</h4>
-          <Box className="px-6">
-            <Markdown>{i18n.changelog()}</Markdown>
-          </Box>
-        </Box>
-      </div>
+    <Page title={t('About')}>
+      <Container size="md" p={0}>
+        <Stack gap="xxl" px={isSmallScreen ? 'sm' : 'md'} py={isSmallScreen ? 'xl' : 'md'}>
+          <Flex gap="xxl" p="md" className="rounded-lg bg-[var(--mantine-color-chatbox-background-secondary-text)]">
+            <Image h={100} w={100} mah={'20vw'} maw={'20vw'} src={iconPNG} />
+            <Stack flex={1} gap="xxs">
+              <Flex justify="space-between" align="center">
+                <Title order={5} lh={1.5}>
+                  Chatbox {/\d/.test(version.version) ? `(v${version.version})` : ''}
+                </Title>
+
+                {!isSmallScreen && (
+                  <Button
+                    size="xs"
+                    onClick={() => platform.openLink(`https://chatboxai.app/redirect_app/check_update/${language}`)}
+                  >
+                    {t('Check Update')}
+                  </Button>
+                )}
+              </Flex>
+              <Text>{t('about-slogan')}</Text>
+              <Text c="chatbox-tertiary">{t('about-introduction')}</Text>
+
+              <Flex gap="sm">
+                <Anchor
+                  size="sm"
+                  href="https://chatboxai.app/privacy"
+                  target="_blank"
+                  underline="hover"
+                  c="chatbox-tertiary"
+                >
+                  {t('Privacy Policy')}
+                </Anchor>
+                <Anchor
+                  size="sm"
+                  href="https://chatboxai.app/terms"
+                  target="_blank"
+                  underline="hover"
+                  c="chatbox-tertiary"
+                >
+                  {t('User Terms')}
+                </Anchor>
+              </Flex>
+            </Stack>
+          </Flex>
+
+          {_i18n.language === 'zh-Hans' ? (
+            <Stack gap="xs" p="md" bg="var(--mantine-color-chatbox-warning-light)" className="rounded-lg">
+              <Flex align="center" gap="xxs" c="chatbox-error">
+                <IconAlertTriangle size={24} className="!text-inherit" />
+                <Title order={5}>正版提示</Title>
+              </Flex>
+              <Text>
+                近期出现了附带 Chatbox 的所谓一键本地部署 DeepSeek 的付费捆绑软件安装包。
+                Chatbox客户端本身是开源免费软件，只在官网(chatboxai.app)销售托管AI服务。
+                如果发现上当受骗，请尽快在对应支付平台如微信、支付宝申请退款。
+              </Text>
+            </Stack>
+          ) : null}
+
+          <List>
+            <ListItem
+              icon={<BrandGithub className="w-full h-full" />}
+              title={t('Github')}
+              link="https://github.com/chatboxai/chatbox"
+              value="chatbox"
+            />
+            {/* <ListItem
+              icon={<BrandX className="w-full h-full" />}
+              title={t('X(Twitter)')}
+              link="https://x.com/ChatboxAI_HQ"
+              value="@ChatboxAI_HQ"
+            /> */}
+            <ListItem
+              icon={<BrandRedNote className="w-full h-full" />}
+              title={t('RedNote')}
+              link="https://www.xiaohongshu.com/user/profile/67b581b6000000000e01d11f"
+              value="@63844903136"
+            />
+            <ListItem icon={<BrandWechat className="w-full h-full" />} title={t('WeChat')} right={<WechatQRCode />} />
+          </List>
+
+          <List>
+            <ListItem
+              icon={<IconHome className="w-full h-full" />}
+              title={t('Homepage')}
+              link={`https://chatboxai.app/redirect_app/homepage/${language}`}
+            />
+            <ListItem
+              icon={<IconClipboard className="w-full h-full" />}
+              title={t('Survey')}
+              link={_i18n.language === 'zh-Hans' ? 'https://jsj.top/f/fcMYEa' : 'https://jsj.top/f/RUMbvY'}
+            />
+            <ListItem
+              icon={<IconPencil className="w-full h-full" />}
+              title={t('Feedback')}
+              link={`https://chatboxai.app/redirect_app/feedback/${language}`}
+            />
+            <ListItem
+              icon={<IconFileText className="w-full h-full" />}
+              title={t('Changelog')}
+              link={`https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/changelog`}
+            />
+            <ListItem
+              icon={<IconMail className="w-full h-full" />}
+              title={t('E-mail')}
+              link={`mailto:hi@chatboxai.com`}
+              value="hi@chatboxai.com"
+            />
+            <ListItem
+              icon={<IconMessage2 className="w-full h-full" />}
+              title={t('FAQs')}
+              link={`https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/chatbox-ai-service-faqs`}
+            />
+          </List>
+        </Stack>
+
+        {/* 开发环境下显示错误测试面板 */}
+        {/* {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 max-w-md">
+            <ErrorTestPanel />
+          </div>
+        )} */}
+      </Container>
     </Page>
+  )
+}
+
+function WechatQRCode() {
+  const { t } = useTranslation()
+  const [opened, { close, open }] = useDisclosure(false)
+  return (
+    <Popover position="top" withArrow shadow="md" opened={opened}>
+      <Popover.Target>
+        <Text onMouseEnter={open} onMouseLeave={close} c="chatbox-brand" className="cursor-pointer">
+          {t('QR Code')}
+        </Text>
+      </Popover.Target>
+      <Popover.Dropdown style={{ pointerEvents: 'none' }}>
+        <Image src={IMG_WECHAT_QRCODE} alt="wechat qrcode" w={160} h={160} />
+      </Popover.Dropdown>
+    </Popover>
+  )
+}
+
+function List(props: { children: ReactElement[] }) {
+  return (
+    <Stack gap={0} className="rounded-lg bg-[var(--mantine-color-chatbox-background-secondary-text)]">
+      {props.children.map((child, index) => (
+        <Fragment key={`child-${index}`}>
+          {child}
+          {index !== props.children.length - 1 && <Divider />}
+        </Fragment>
+      ))}
+    </Stack>
+  )
+}
+
+function ListItem({
+  icon,
+  title,
+  link,
+  value,
+  right,
+}: {
+  icon: ReactElement
+  title: string
+  link?: string
+  value?: string
+  right?: ReactElement
+}) {
+  return (
+    <Flex
+      px="md"
+      py="sm"
+      gap="xs"
+      align="center"
+      className={link ? 'cursor-pointer' : ''}
+      onClick={() => link && platform.openLink(link)}
+      c="chatbox-tertiary"
+    >
+      <Box w={20} h={20} className="flex-shrink-0 " c="chatbox-primary">
+        {icon}
+      </Box>
+      <Text flex={1} size="md">
+        {title}
+      </Text>
+
+      {right ? (
+        right
+      ) : (
+        <>
+          {value && (
+            <Text size="md" c="chatbox-tertiary">
+              {value}
+            </Text>
+          )}
+          {link && <IconChevronRight size={20} className="!text-inherit" />}
+        </>
+      )}
+    </Flex>
   )
 }

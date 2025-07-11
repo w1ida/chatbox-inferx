@@ -1,16 +1,7 @@
 import platform from '@/platform'
 import { CapacitorHttp } from '@capacitor/core'
 import { FetchOptions, ofetch } from 'ofetch'
-
-export interface SearchResultItem {
-  title: string
-  link: string
-  snippet: string
-}
-
-export interface SearchResult {
-  items: SearchResultItem[]
-}
+import type { SearchResult } from 'src/shared/types'
 
 abstract class WebSearch {
   abstract search(query: string, signal?: AbortSignal): Promise<SearchResult>

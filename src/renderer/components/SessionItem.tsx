@@ -1,7 +1,3 @@
-import { ImageInStorage } from '@/components/Image'
-import { useIsSmallScreen } from '@/hooks/useScreenChange'
-import { cn } from '@/lib/utils'
-import { removeSession, saveSession } from '@/stores/sessionStorageMutations'
 import NiceModal from '@ebay/nice-modal-react'
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
 import CopyIcon from '@mui/icons-material/CopyAll'
@@ -13,8 +9,12 @@ import VrpanoIcon from '@mui/icons-material/Vrpano'
 import { Avatar, IconButton, ListItemIcon, ListItemText, MenuItem, Typography, useTheme } from '@mui/material'
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SessionMeta } from '../../shared/types'
-import * as sessionActions from '../stores/sessionActions'
+import type { SessionMeta } from '@/../shared/types'
+import { ImageInStorage } from '@/components/Image'
+import { useIsSmallScreen } from '@/hooks/useScreenChange'
+import { cn } from '@/lib/utils'
+import * as sessionActions from '@/stores/sessionActions'
+import { removeSession, saveSession } from '@/stores/sessionStorageMutations'
 import { ConfirmDeleteMenuItem } from './ConfirmDeleteButton'
 import StyledMenu from './StyledMenu'
 
@@ -101,10 +101,10 @@ function _SessionItem(props: Props) {
         onClose={handleMenuClose}
       >
         <MenuItem
-          key={session.id + 'edit'}
+          key={`${session.id}edit`}
           onClick={() => {
             NiceModal.show('session-settings', {
-              chatConfigDialogSessionId: session.id,
+              session: session,
             })
             handleMenuClose()
           }}
@@ -115,7 +115,7 @@ function _SessionItem(props: Props) {
         </MenuItem>
 
         <MenuItem
-          key={session.id + 'copy'}
+          key={`${session.id}copy`}
           onClick={() => {
             sessionActions.copy(session)
             handleMenuClose()
@@ -126,7 +126,7 @@ function _SessionItem(props: Props) {
           {t('copy')}
         </MenuItem>
         <MenuItem
-          key={session.id + 'star'}
+          key={`${session.id}star`}
           onClick={() => {
             saveSession({
               id: session.id,

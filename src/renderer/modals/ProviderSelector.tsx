@@ -1,20 +1,14 @@
-import NiceModal, { useModal, muiDialogV5 } from '@ebay/nice-modal-react'
+import { AIModelProviderMenuOptionList } from '@/packages/models'
+import NiceModal, { muiDialogV5, useModal } from '@ebay/nice-modal-react'
 import { Box, Dialog, DialogContent, List, ListItem, ListItemButton, ListItemText } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { AIModelProviderMenuOptionList } from '@/packages/models'
-import { ModelProvider } from '../../shared/types'
-import * as settingActions from '@/stores/settingActions'
+import { ModelProvider, ModelProviderEnum } from '../../shared/types'
 
 const ProviderSelector = NiceModal.create(() => {
   const { t } = useTranslation()
   const modal = useModal()
 
   const onSetup = (provider: ModelProvider) => {
-    if (provider === ModelProvider.Custom) {
-      settingActions.createCustomProvider()
-    } else {
-      settingActions.setModelProvider(provider)
-    }
     modal.resolve(provider)
     modal.hide()
   }
@@ -26,7 +20,8 @@ const ProviderSelector = NiceModal.create(() => {
         modal.resolve()
         modal.hide()
       }}
-      maxWidth="sm"
+      maxWidth="xs"
+      fullWidth
     >
       <DialogContent>
         <Box sx={{ textAlign: 'center', mb: 2 }}>
@@ -34,7 +29,7 @@ const ProviderSelector = NiceModal.create(() => {
             {t('Select and configure an AI model provider')}
           </p>
         </Box>
-        <List sx={{ width: '100%', minWidth: 360 }}>
+        <List sx={{ width: '100%' }}>
           {AIModelProviderMenuOptionList.map((provider) => (
             <ListItem key={provider.value} disablePadding>
               <ListItemButton
@@ -57,7 +52,7 @@ const ProviderSelector = NiceModal.create(() => {
           ))}
           <ListItem key={'custom'} disablePadding>
             <ListItemButton
-              onClick={() => onSetup(ModelProvider.Custom)}
+              onClick={() => onSetup(ModelProviderEnum.Custom)}
               sx={{
                 borderRadius: '8px',
                 mb: 1,

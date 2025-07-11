@@ -1,19 +1,13 @@
 import { createAzure } from '@ai-sdk/azure'
 import AbstractAISDKModel from './abstract-ai-sdk'
-import { ModelHelpers } from './types'
-
-const helpers: ModelHelpers = {
-  isModelSupportVision: (model: string) => {
-    return true
-  },
-  isModelSupportToolUse: (model: string) => {
-    return true
-  },
-}
+import { normalizeAzureEndpoint } from './llm_utils'
+import { ProviderModelInfo } from 'src/shared/types'
+import { extractReasoningMiddleware, wrapLanguageModel } from 'ai'
+import { CallChatCompletionOptions } from './types'
 
 interface Options {
   azureEndpoint: string
-  azureDeploymentName: string
+  model: ProviderModelInfo
   azureDalleDeploymentName: string // dall-e-3 的部署名称
   azureApikey: string
   azureApiVersion: string
@@ -30,32 +24,36 @@ interface Options {
 
 export default class AzureOpenAI extends AbstractAISDKModel {
   public name = 'Azure OpenAI'
-  public static helpers = helpers
 
   constructor(public options: Options) {
-    super()
+    super(options)
   }
 
   private getProvider() {
-    const origin = new URL(this.options.azureEndpoint.trim()).origin
     return createAzure({
       apiKey: this.options.azureApikey,
       apiVersion: this.options.azureApiVersion,
-      baseURL: origin + '/openai/deployments',
+      baseURL: normalizeAzureEndpoint(this.options.azureEndpoint).endpoint,
     })
+  }
+
+  protected getCallSettings() {
+    return {
+      temperature: this.options.temperature,
+      topP: this.options.topP,
+    }
   }
 
   protected getChatModel() {
     const provider = this.getProvider()
-    return provider.chat(this.options.azureDeploymentName)
+    return wrapLanguageModel({
+      model: provider.chat(this.options.model.modelId),
+      middleware: extractReasoningMiddleware({ tagName: 'think' }),
+    })
   }
 
   protected getImageModel() {
     const provider = this.getProvider()
-    return provider.imageModel(this.options.azureDalleDeploymentName)
-  }
-
-  public isSupportToolUse() {
-    return helpers.isModelSupportToolUse(this.options.azureDeploymentName)
+    return provider.imageModel(this.options.model.modelId)
   }
 }

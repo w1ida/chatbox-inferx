@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* radius */
+  --chatbox-radius-none: 0rem;
+  --chatbox-radius-xs: 0.125rem;
+  --chatbox-radius-sm: 0.25rem;
+  --chatbox-radius-md: 0.5rem;
+  --chatbox-radius-lg: 1rem;
+  --chatbox-radius-xl: 1.5rem;
+  --chatbox-radius-xxl: 2rem;
+
+  /* spacing */
+  --chatbox-spacing-none: 0rem;
+  --chatbox-spacing-3xs: 0.125rem;
+  --chatbox-spacing-xxs: 0.25rem;
+  --chatbox-spacing-xs: 0.5rem;
+  --chatbox-spacing-sm: 0.75rem;
+  --chatbox-spacing-md: 1rem;
+  --chatbox-spacing-lg: 1.25rem;
+  --chatbox-spacing-xl: 1.5rem;
+  --chatbox-spacing-xxl: 2rem;
+}
+
+.mantine-Spotlight-actionsGroup {
+  margin-bottom: 2rem;
+}
+
+.mantine-Spotlight-actionDescription {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+/* KaTeX styles for preventing overflow */
+.katex .katex-html {
+  max-width: 100%;
+  overflow-x: auto;
+  display: inline-block;
+}

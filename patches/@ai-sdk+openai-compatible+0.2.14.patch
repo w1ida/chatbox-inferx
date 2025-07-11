@@ -1,0 +1,50 @@
+diff --git a/node_modules/@ai-sdk/openai-compatible/dist/index.mjs b/node_modules/@ai-sdk/openai-compatible/dist/index.mjs
+index 6446ad8..04c71a3 100644
+--- a/node_modules/@ai-sdk/openai-compatible/dist/index.mjs
++++ b/node_modules/@ai-sdk/openai-compatible/dist/index.mjs
+@@ -366,7 +366,7 @@ var OpenAICompatibleChatLanguageModel = class {
+     }
+   }
+   async doGenerate(options) {
+-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
++    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+     const { args, warnings } = this.getArgs({ ...options });
+     const body = JSON.stringify(args);
+     const {
+@@ -411,7 +411,7 @@ var OpenAICompatibleChatLanguageModel = class {
+     }
+     return {
+       text: (_e = choice.message.content) != null ? _e : void 0,
+-      reasoning: (_f = choice.message.reasoning_content) != null ? _f : void 0,
++      reasoning: (_f = choice.message.reasoning_content) != null ? _f : (_g = choice.message.reasoning) != null ? _g : void 0,
+       toolCalls: (_g = choice.message.tool_calls) == null ? void 0 : _g.map((toolCall) => {
+         var _a2;
+         return {
+@@ -590,6 +590,11 @@ var OpenAICompatibleChatLanguageModel = class {
+                 type: "reasoning",
+                 textDelta: delta.reasoning_content
+               });
++            } else if (delta.reasoning != null) {
++              controller.enqueue({
++                type: "reasoning",
++                textDelta: delta.reasoning
++              });
+             }
+             if (delta.content != null) {
+               controller.enqueue({
+@@ -738,6 +743,7 @@ var OpenAICompatibleChatResponseSchema = z2.object({
+         role: z2.literal("assistant").nullish(),
+         content: z2.string().nullish(),
+         reasoning_content: z2.string().nullish(),
++        reasoning: z2.string().nullish(),
+         tool_calls: z2.array(
+           z2.object({
+             id: z2.string().nullish(),
+@@ -765,6 +771,7 @@ var createOpenAICompatibleChatChunkSchema = (errorSchema) => z2.union([
+           role: z2.enum(["assistant"]).nullish(),
+           content: z2.string().nullish(),
+           reasoning_content: z2.string().nullish(),
++          reasoning: z2.string().nullish(),
+           tool_calls: z2.array(
+             z2.object({
+               index: z2.number(),

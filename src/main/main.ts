@@ -8,29 +8,30 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeTheme, session, shell, Tray } from 'electron'
+import log from 'electron-log/main'
+import { autoUpdater } from 'electron-updater'
 import os from 'os'
 import path from 'path'
-import { app, BrowserWindow, globalShortcut, shell, ipcMain, nativeTheme, session, Tray, Menu } from 'electron'
-import log from 'electron-log/main'
-import MenuBuilder from './menu'
-import { resolveHtmlPath } from './util'
-import Locale from './locales'
-import {
-  store,
-  getConfig,
-  getSettings,
-  delStoreBlob,
-  setStoreBlob,
-  listStoreBlobKeys,
-  getStoreBlob,
-} from './store-node'
-import * as proxy from './proxy'
-import * as windowState from './window_state'
+import { ShortcutSetting } from 'src/shared/types'
 import * as analystic from './analystic-node'
 import * as autoLauncher from './autoLauncher'
-import { ShortcutSetting } from 'src/shared/types'
 import { parseFile } from './file-parser'
-// import { readability } from './readability'
+import Locale from './locales'
+import MenuBuilder from './menu'
+import * as proxy from './proxy'
+import {
+  delStoreBlob,
+  getConfig,
+  getSettings,
+  getStoreBlob,
+  listStoreBlobKeys,
+  setStoreBlob,
+  store,
+} from './store-node'
+import { resolveHtmlPath } from './util'
+import * as windowState from './window_state'
+import * as mcpIpc from './mcp/ipc-stdio-transport'
 
 // 这行代码是解决 Windows 通知的标题和图标不正确的问题，标题会错误显示成 electron.app.Chatbox
 // 参考：https://stackoverflow.com/questions/65859634/notification-from-electron-shows-electron-app-electron
@@ -397,6 +398,7 @@ if (!gotTheLock) {
         } catch (e) {
           log.error('shortcut: failed to unregister', e)
         }
+        mcpIpc.closeAllTransports()
         destroyTray()
       })
       app.on('before-quit', () => {
@@ -424,7 +426,7 @@ ipcMain.handle('getAllStoreValues', (event) => {
 })
 ipcMain.handle('setAllStoreValues', (event, dataJson) => {
   const data = JSON.parse(dataJson)
-  store.store = data
+  store.store = { ...store.store, ...data }
 })
 
 ipcMain.handle('getStoreBlob', async (event, key) => {

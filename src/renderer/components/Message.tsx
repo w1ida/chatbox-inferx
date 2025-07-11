@@ -1,72 +1,75 @@
-import React, { useEffect, useState, useRef, useMemo, MouseEventHandler, memo, FC } from 'react'
-import Box from '@mui/material/Box'
-import Avatar from '@mui/material/Avatar'
-import MenuItem from '@mui/material/MenuItem'
-import { CircularProgress, IconButton, Typography, Grid, Tooltip, ButtonGroup, useTheme } from '@mui/material'
-import PersonIcon from '@mui/icons-material/Person'
-import SmartToyIcon from '@mui/icons-material/SmartToy'
-import SettingsIcon from '@mui/icons-material/Settings'
-import EditIcon from '@mui/icons-material/Edit'
-import StopIcon from '@mui/icons-material/Stop'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import FormatQuoteIcon from '@mui/icons-material/FormatQuote'
-import { useTranslation } from 'react-i18next'
-import { Message, SessionType } from '../../shared/types'
-import ReplayIcon from '@mui/icons-material/Replay'
 import CopyAllIcon from '@mui/icons-material/CopyAll'
+import EditIcon from '@mui/icons-material/Edit'
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import PersonIcon from '@mui/icons-material/Person'
+import ReplayIcon from '@mui/icons-material/Replay'
+import SettingsIcon from '@mui/icons-material/Settings'
+import SmartToyIcon from '@mui/icons-material/SmartToy'
+import StopIcon from '@mui/icons-material/Stop'
+import { ButtonGroup, Grid, IconButton, Tooltip, Typography, useTheme } from '@mui/material'
+import Avatar from '@mui/material/Avatar'
+import Box from '@mui/material/Box'
+import MenuItem from '@mui/material/MenuItem'
 import { useAtomValue, useSetAtom } from 'jotai'
+import type React from 'react'
+import { type FC, type MouseEventHandler, memo, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import Markdown from '@/components/Markdown'
+import type { Message, SessionType } from '../../shared/types'
 import {
+  autoCollapseCodeBlockAtom,
+  autoPreviewArtifactsAtom,
+  currentSessionAssistantAvatarKeyAtom,
+  currentSessionPicUrlAtom,
+  defaultAssistantAvatarKeyAtom,
+  enableLaTeXRenderingAtom,
+  enableMarkdownRenderingAtom,
+  enableMermaidRenderingAtom,
+  inputBoxWebBrowsingModeAtom,
   messageScrollingScrollPositionAtom,
+  openSettingDialogAtom,
   pictureShowAtom,
   quoteAtom,
+  showFirstTokenLatencyAtom,
   showMessageTimestampAtom,
   showModelNameAtom,
   showTokenCountAtom,
+  showTokenUsedAtom,
   showWordCountAtom,
-  defaultAssistantAvatarKeyAtom,
   userAvatarKeyAtom,
-  openSettingDialogAtom,
-  enableMarkdownRenderingAtom,
-  enableLaTeXRenderingAtom,
-  enableMermaidRenderingAtom,
-  currentSessionAssistantAvatarKeyAtom,
   widthFullAtom,
-  autoPreviewArtifactsAtom,
-  autoCollapseCodeBlockAtom,
-  showFirstTokenLatencyAtom,
-  inputBoxWebBrowsingModeAtom,
 } from '../stores/atoms'
-import { currentSessionPicUrlAtom, showTokenUsedAtom } from '../stores/atoms'
+import * as scrollActions from '../stores/scrollActions'
 import * as sessionActions from '../stores/sessionActions'
 import * as toastActions from '../stores/toastActions'
-import * as scrollActions from '../stores/scrollActions'
-import Markdown from '@/components/Markdown'
 import '../static/Block.css'
-import { ImageInStorage, Img } from './Image'
-import SouthIcon from '@mui/icons-material/South'
-import ImageIcon from '@mui/icons-material/Image'
-import MessageErrTips from './MessageErrTips'
-import MessageStatuses from './MessageLoading'
-import { MessageAttachment } from './Attachments'
-import StyledMenu from './StyledMenu'
+import NiceModal from '@ebay/nice-modal-react'
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
-import * as dom from '@/hooks/dom'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import ImageIcon from '@mui/icons-material/Image'
+import ReportIcon from '@mui/icons-material/Report'
+import SouthIcon from '@mui/icons-material/South'
+import { useNavigate } from '@tanstack/react-router'
 import * as dateFns from 'date-fns'
+import { isEmpty } from 'lodash'
+import * as dom from '@/hooks/dom'
 import { cn } from '@/lib/utils'
 import { copyToClipboard } from '@/packages/navigator'
 import { estimateTokensFromMessages } from '@/packages/token'
 import { countWord } from '@/packages/word-count'
-import { isContainRenderableCode, MessageArtifact } from './Artifact'
-import ReportIcon from '@mui/icons-material/Report'
-import { ConfirmDeleteMenuItem } from './ConfirmDeleteButton'
 import platform from '@/platform'
-import NiceModal from '@ebay/nice-modal-react'
-import { useNavigate } from '@tanstack/react-router'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import Loading from './icons/Loading'
+import { getSession } from '@/stores/sessionStorageMutations'
 import { getMessageText } from '@/utils/message'
-import { isEmpty } from 'lodash'
+import { isContainRenderableCode, MessageArtifact } from './Artifact'
+import { MessageAttachment } from './Attachments'
+import { ConfirmDeleteMenuItem } from './ConfirmDeleteButton'
+import { ImageInStorage, Img } from './Image'
+import Loading from './icons/Loading'
+import MessageErrTips from './MessageErrTips'
+import MessageStatuses from './MessageLoading'
 import { ToolCallPartUI } from './message-parts/ToolCallPartUI'
+import StyledMenu from './StyledMenu'
 
 interface Props {
   id?: string
@@ -110,7 +113,7 @@ const Message: FC<Props> = (props) => {
   const [previewArtifact, setPreviewArtifact] = useState(autoPreviewArtifacts)
   const contentLength = useMemo(() => {
     return getMessageText(msg).length
-  }, [msg.contentParts])
+  }, [msg])
 
   const needCollapse =
     collapseThreshold &&
@@ -143,7 +146,7 @@ const Message: FC<Props> = (props) => {
   const quoteMsg = () => {
     let input = getMessageText(msg)
       .split('\n')
-      .map((line: any) => `> ${line}`)
+      .map((line) => `> ${line}`)
       .join('\n')
     input += '\n\n-------------------\n\n'
     setQuote(input)
@@ -184,9 +187,6 @@ const Message: FC<Props> = (props) => {
     NiceModal.show('report-content', { contentId: getMessageText(msg) || msg.id })
   }
 
-  const setMsg = (updated: Message) => {
-    sessionActions.modifyMessage(props.sessionId, updated, true)
-  }
   const onDelMsg = () => {
     setAnchorEl(null)
     sessionActions.removeMessage(props.sessionId, msg.id)
@@ -213,7 +213,7 @@ const Message: FC<Props> = (props) => {
       tips.push(`tokens used: ${msg.tokensUsed || 'unknown'}`)
     }
     if (showFirstTokenLatency && msg.role === 'assistant' && !msg.generating) {
-      let latency = msg.firstTokenLatency ? `${msg.firstTokenLatency}ms` : 'unknown'
+      const latency = msg.firstTokenLatency ? `${msg.firstTokenLatency}ms` : 'unknown'
       tips.push(`first token latency: ${latency}`)
     }
     if (showModelName && props.msg.role === 'assistant') {
@@ -228,7 +228,7 @@ const Message: FC<Props> = (props) => {
 
   // 消息时间戳
   if (showMessageTimestamp && msg.timestamp !== undefined) {
-    let date = new Date(msg.timestamp)
+    const date = new Date(msg.timestamp)
     let messageTimestamp: string
     if (dateFns.isToday(date)) {
       // - 当天，显示 HH:mm
@@ -241,7 +241,7 @@ const Message: FC<Props> = (props) => {
       messageTimestamp = dateFns.format(date, 'yyyy-MM-dd HH:mm')
     }
 
-    tips.push('time: ' + messageTimestamp)
+    tips.push(`time: ${messageTimestamp}`)
   }
 
   let fixedButtonGroup = false
@@ -280,7 +280,7 @@ const Message: FC<Props> = (props) => {
       return false
     }
     return isContainRenderableCode(getMessageText(msg))
-  }, [msg.contentParts, msg.role])
+  }, [msg])
 
   // 消息生成中自动跟踪滚动
   useEffect(() => {
@@ -314,7 +314,7 @@ const Message: FC<Props> = (props) => {
     }
   }, [msg.contentParts, msg.reasoningContent, needArtifact])
 
-  let contentParts = msg.contentParts
+  const contentParts = msg.contentParts || []
 
   const CollapseButton = (
     <span
@@ -326,7 +326,7 @@ const Message: FC<Props> = (props) => {
   )
 
   const onClickAssistantAvatar = () => {
-    NiceModal.show('session-settings', { chatConfigDialogSessionId: props.sessionId })
+    NiceModal.show('session-settings', { session: getSession(props.sessionId) })
   }
 
   function showPicture(storageKey: string) {
@@ -565,7 +565,7 @@ const Message: FC<Props> = (props) => {
                             </Markdown>
                           ) : (
                             <div style={{ whiteSpace: 'pre-line' }}>
-                              {needCollapse && isCollapsed ? item.text.slice(0, collapseThreshold) + '...' : item.text}
+                              {needCollapse && isCollapsed ? `${item.text.slice(0, collapseThreshold)}...` : item.text}
                               {needCollapse && isCollapsed && CollapseButton}
                             </div>
                           )}
@@ -670,7 +670,7 @@ const Message: FC<Props> = (props) => {
                       ...(fixedButtonGroup
                         ? {
                             position: 'fixed',
-                            bottom: dom.getInputBoxHeight() + 4 + 'px',
+                            bottom: `${dom.getInputBoxHeight() + 4}px`,
                             zIndex: 100,
                             marginBottom: 'var(--mobile-safe-area-inset-bottom, 0px)',
                           }
@@ -763,10 +763,10 @@ const Message: FC<Props> = (props) => {
                       anchorEl={anchorEl}
                       open={open}
                       onClose={handleClose}
-                      key={msg.id + 'menu'}
+                      key={`${msg.id}menu`}
                     >
                       <MenuItem
-                        key={msg.id + 'quote'}
+                        key={`${msg.id}quote`}
                         onClick={() => {
                           setAnchorEl(null)
                           quoteMsg()
@@ -778,7 +778,7 @@ const Message: FC<Props> = (props) => {
                         {t('quote')}
                       </MenuItem>
                       {msg.role === 'assistant' && platform.type === 'mobile' && (
-                        <MenuItem key={msg.id + 'report'} onClick={onReport} disableRipple>
+                        <MenuItem key={`${msg.id}report`} onClick={onReport} disableRipple>
                           <ReportIcon fontSize="small" />
                           {t('report')}
                         </MenuItem>
