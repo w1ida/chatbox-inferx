@@ -67,9 +67,9 @@ export function settings(): Settings {
         id: 'InferX',
         name: 'InferX',
         api: 'openai',
-        host: 'inferx-api.paas.cmbchina.cn',
-        path: 'string',
-        key: 'string',
+        host: 'http://inferx-api.paas.cmbchina.cn',
+        path: '/v1/chat/completions',
+        key: 'sk-8c86a0f384614a2d8e3f0d9b6d9d3d1a',
         model: 'Qwen3-32B',
         modelOptions: ['Qwen3-32B','Qwen3-30B-A3B','Qwen3-4B','QwQ-32B'],
         useProxy: false,
@@ -91,7 +91,7 @@ export function settings(): Settings {
 
     defaultPrompt: getDefaultPrompt(),
 
-    allowReportingAndTracking: true,
+    allowReportingAndTracking: false,
 
     enableMarkdownRendering: true,
     enableLaTeXRendering: true,

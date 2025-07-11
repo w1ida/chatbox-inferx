@@ -3,7 +3,7 @@ import platform from '../platform'
 import { CHATBOX_BUILD_TARGET, CHATBOX_BUILD_PLATFORM, NODE_ENV } from '@/variables'
 ;(async () => {
   const settings = await platform.getSettings()
-  if (!settings.allowReportingAndTracking) {
+  if (1||!settings.allowReportingAndTracking) {
     return
   }
 
