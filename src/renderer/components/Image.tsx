@@ -44,15 +44,7 @@ export function Img(props: {
   return <img src={props.src} className={`max-w-full max-h-full ${props.className || ''}`} onClick={props.onClick} />
 }
 
-export function handleImageInputAndSave(
-  event: React.ChangeEvent<HTMLInputElement>,
-  key: string,
-  updateKey?: (key: string) => void
-) {
-  if (!event.target.files) {
-    return
-  }
-  const file = event.target.files[0]
+export function handleImageInputAndSave(file: File, key: string, updateKey?: (key: string) => void) {
   if (file.type.startsWith('image/')) {
     const reader = new FileReader()
     reader.onload = async (e) => {
@@ -66,5 +58,4 @@ export function handleImageInputAndSave(
     }
     reader.readAsDataURL(file)
   }
-  event.target.value = ''
 }

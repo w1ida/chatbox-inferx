@@ -1,10 +1,10 @@
 import SimpleSelect from './SimpleSelect'
-import { ModelSettings } from '../../shared/types'
+import { SessionSettings } from '../../shared/types'
 import { useTranslation } from 'react-i18next'
 
 export interface Props {
-  value: ModelSettings['dalleStyle']
-  onChange(value: ModelSettings['dalleStyle']): void
+  value: SessionSettings['dalleStyle']
+  onChange(value: SessionSettings['dalleStyle']): void
   className?: string
 }
 

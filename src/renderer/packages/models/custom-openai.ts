@@ -1,27 +1,15 @@
-import { fetchWithProxy } from '@/utils/request'
-import { createOpenAICompatible, OpenAICompatibleImageModel } from '@ai-sdk/openai-compatible'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { extractReasoningMiddleware, wrapLanguageModel } from 'ai'
+import type { ProviderModelInfo } from 'src/shared/types'
+import { fetchWithProxy } from '@/utils/request'
 import AbstractAISDKModel from './abstract-ai-sdk'
 import { normalizeOpenAIApiHostAndPath } from './llm_utils'
-import { OpenAIModel, openaiModelConfigs } from './openai'
-import { ModelHelpers } from './types'
-
-const helpers: ModelHelpers = {
-  isModelSupportVision: (model: string) => {
-    // TODO: 需要由用户设置,
-    return !!openaiModelConfigs[model as OpenAIModel]?.vision
-  },
-  isModelSupportToolUse: (model: string) => {
-    // TODO: 需要由用户设置
-    return false
-  },
-}
 
 interface Options {
   apiKey: string
   apiHost: string
   apiPath: string
-  model: string
+  model: ProviderModelInfo
   useProxy?: boolean
   temperature?: number
   topP?: number
@@ -31,11 +19,10 @@ type FetchFunction = typeof globalThis.fetch
 
 export default class CustomOpenAI extends AbstractAISDKModel {
   public name = 'Custom'
-  public static helpers = helpers
   public options: Options
 
   constructor(options: Options) {
-    super()
+    super(options)
     const { apiHost, apiPath } = normalizeOpenAIApiHostAndPath({ apiHost: options.apiHost, apiPath: options.apiPath })
     this.options = { ...options, apiHost, apiPath }
   }
@@ -58,7 +45,11 @@ export default class CustomOpenAI extends AbstractAISDKModel {
             'HTTP-Referer': 'https://chatboxai.app',
             'X-Title': 'Chatbox AI',
           }
-        : undefined,
+        : this.options.apiHost.includes('aihubmix.com')
+          ? {
+              'APP-Code': 'VAFU9221',
+            }
+          : undefined,
     })
   }
 
@@ -68,7 +59,7 @@ export default class CustomOpenAI extends AbstractAISDKModel {
       return fetcher(`${this.options.apiHost}${this.options.apiPath}`, init)
     })
     return wrapLanguageModel({
-      model: provider.chatModel(this.options.model),
+      model: provider.chatModel(this.options.model.modelId),
       middleware: extractReasoningMiddleware({ tagName: 'think' }),
     })
   }
@@ -79,9 +70,5 @@ export default class CustomOpenAI extends AbstractAISDKModel {
     return provider.imageModel('dall-e-3', {
       maxImagesPerCall: 1,
     })
-  }
-
-  public isSupportToolUse() {
-    return helpers.isModelSupportToolUse(this.options.model)
   }
 }

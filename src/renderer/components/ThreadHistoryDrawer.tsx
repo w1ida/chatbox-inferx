@@ -1,72 +1,73 @@
-import React, { useEffect, useRef } from 'react'
-import { currentThreadHistoryHashAtom, currentSessionIdAtom, showThreadHistoryDrawerAtom } from '@/stores/atoms'
-import {
-  Tooltip,
-  Box,
-  Drawer,
-  MenuList,
-  MenuItem,
-  ListItemText,
-  Typography,
-  ListItemIcon,
-  IconButton,
-} from '@mui/material'
-import { useAtom, useAtomValue } from 'jotai'
-import { scrollToMessage } from '@/stores/scrollActions'
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { SessionThreadBrief } from 'src/shared/types'
-import * as sessionActions from '../stores/sessionActions'
-import { useTranslation } from 'react-i18next'
+import NiceModal from '@ebay/nice-modal-react'
+import EditIcon from '@mui/icons-material/Edit'
 import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined'
 import SwapCallsIcon from '@mui/icons-material/SwapCalls'
+import { Box, Drawer, IconButton, ListItemIcon, ListItemText, MenuItem, MenuList, Typography } from '@mui/material'
+import { useAtom, useAtomValue } from 'jotai'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
+import type { SessionThreadBrief } from 'src/shared/types'
 import StyledMenu from '@/components/StyledMenu'
-import { cn } from '@/lib/utils'
 import { useIsSmallScreen } from '@/hooks/useScreenChange'
+import { cn } from '@/lib/utils'
 import * as atoms from '@/stores/atoms'
+import { currentSessionIdAtom, currentThreadHistoryHashAtom, showThreadHistoryDrawerAtom } from '@/stores/atoms'
+import { scrollToMessage } from '@/stores/scrollActions'
+import * as sessionActions from '../stores/sessionActions'
 import { ConfirmDeleteMenuItem } from './ConfirmDeleteButton'
 
-export default function ThreadHistoryDrawer(props: {}) {
+export default function ThreadHistoryDrawer() {
   const { t } = useTranslation()
   const language = useAtomValue(atoms.languageAtom)
   const [showDrawer, setShowDrawer] = useAtom(showThreadHistoryDrawerAtom)
   const currentThreadHistoryHash = useAtomValue(currentThreadHistoryHashAtom)
   const currentSessionId = useAtomValue(currentSessionIdAtom)
 
-  const threadList = Object.values(currentThreadHistoryHash)
+  const threadList = useMemo(() => Object.values(currentThreadHistoryHash), [currentThreadHistoryHash])
 
   // 每次打开后自动滚动。如果选择了某个历史，则滚动到该历史；如果没有选择，则滚动到末尾
   const ref = useRef<VirtuosoHandle>(null)
+
   useEffect(() => {
-    setTimeout(() => {
-      if (ref.current) {
-        if (showDrawer === true) {
-          ref.current.scrollToIndex({
-            index: threadList.length - 1,
-            align: 'start',
-          })
-        } else {
-          const index = threadList.findIndex((t) => t.id === showDrawer)
-          if (index >= 0) {
-            ref.current.scrollToIndex({ index, align: 'start' })
-          }
+    const timeout = setTimeout(() => {
+      if (!ref.current) return
+      if (showDrawer === true) {
+        ref.current.scrollToIndex({
+          index: threadList.length - 1,
+          align: 'start',
+        })
+      } else {
+        const index = threadList.findIndex((t) => t.id === showDrawer)
+        if (index >= 0) {
+          ref.current.scrollToIndex({ index, align: 'start' })
         }
       }
     }, 100)
-  }, [showDrawer, ref.current])
-
-  const gotoThreadMessage = (threadId: string) => {
-    const thread = threadList.find((t) => t.id === threadId)
-    if (!thread) {
-      return
+    return () => {
+      clearTimeout(timeout)
     }
-    scrollToMessage(thread.firstMessageId, 'start')
-    setShowDrawer(false)
-  }
+  }, [showDrawer, threadList])
 
-  const switchThread = (threadId: string) => {
-    sessionActions.switchThread(currentSessionId, threadId)
-    setShowDrawer(false)
-  }
+  const gotoThreadMessage = useCallback(
+    (threadId: string) => {
+      const thread = threadList.find((t) => t.id === threadId)
+      if (!thread) {
+        return
+      }
+      scrollToMessage(thread.firstMessageId, 'start')
+      setShowDrawer(false)
+    },
+    [threadList, setShowDrawer]
+  )
+
+  const switchThread = useCallback(
+    (threadId: string) => {
+      sessionActions.switchThread(currentSessionId, threadId)
+      setShowDrawer(false)
+    },
+    [currentSessionId, setShowDrawer]
+  )
 
   return (
     <Drawer
@@ -145,15 +146,23 @@ function ThreadItem(props: {
   const currentSessionId = useAtomValue(currentSessionIdAtom)
   const isSmallScreen = useIsSmallScreen()
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+  const onEditButtonClick = useCallback(() => {
+    NiceModal.show('thread-name-edit', { sessionId: currentSessionId, threadId: thread.id })
+  }, [currentSessionId, thread.id])
+
+  const onSwitchButtonClick = useCallback(() => {
+    switchThread(thread.id)
+  }, [switchThread, thread.id])
+
+  const handleMenuClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation()
     event.preventDefault()
     setAnchorEl(event.currentTarget)
-  }
+  }, [])
 
-  const handleMenuClose = () => {
+  const handleMenuClose = useCallback(() => {
     setAnchorEl(null)
-  }
+  }, [])
 
   return (
     <>
@@ -185,8 +194,12 @@ function ThreadItem(props: {
           </IconButton>
         </ListItemIcon>
       </MenuItem>
-      <StyledMenu anchorEl={anchorEl} open={open} onClose={handleMenuClose} key={thread.id + 'menu'}>
-        <MenuItem key={thread.id + 'switch'} onClick={() => switchThread(thread.id)} disableRipple divider>
+      <StyledMenu anchorEl={anchorEl} open={open} onClose={handleMenuClose} key={`${thread.id}-menu`}>
+        <MenuItem key={`${thread.id}-edit`} onClick={onEditButtonClick} disableRipple>
+          <EditIcon fontSize="small" />
+          {t('Edit Thread Name')}
+        </MenuItem>
+        <MenuItem key={`${thread.id}-switch`} onClick={onSwitchButtonClick} disableRipple divider>
           <SwapCallsIcon fontSize="small" />
           {t('Switch')}
         </MenuItem>

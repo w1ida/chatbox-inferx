@@ -1,23 +1,22 @@
-import { cn } from '@/lib/utils'
 import NiceModal from '@ebay/nice-modal-react'
 import EditIcon from '@mui/icons-material/Edit'
 import ImageIcon from '@mui/icons-material/Image'
 import { Box, Chip, IconButton, Tooltip, Typography, useTheme } from '@mui/material'
 import { useAtom, useAtomValue } from 'jotai'
-import { PanelRightClose } from 'lucide-react'
+import { PanelRightClose, Settings2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { isChatSession, isPictureSession } from '../../shared/types'
 import useNeedRoomForWinControls from '../hooks/useNeedRoomForWinControls'
 import { useIsSmallScreen } from '../hooks/useScreenChange'
 import * as atoms from '../stores/atoms'
 import * as sessionActions from '../stores/sessionActions'
 import * as settingActions from '../stores/settingActions'
+import MiniButton from './MiniButton'
 import Toolbar from './Toolbar'
 
-interface Props {}
-
-export default function Header(props: Props) {
+export default function Header() {
   const { t } = useTranslation()
   const theme = useTheme()
   const currentSession = useAtomValue(atoms.currentSessionAtom)
@@ -49,7 +48,7 @@ export default function Header(props: Props) {
     if (!currentSession) {
       return
     }
-    NiceModal.show('session-settings', { chatConfigDialogSessionId: currentSession.id })
+    NiceModal.show('session-settings', { session: currentSession })
   }
 
   let EditButton: React.ReactNode | null = null
@@ -114,45 +113,46 @@ export default function Header(props: Props) {
           </IconButton>
         </Box>
       )}
-      <div className={cn('w-full mx-auto flex flex-row', 'pt-2 pb-2')}>
-        <Typography
-          variant="h6"
-          color="inherit"
-          component="div"
-          noWrap
-          sx={{
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-          className="flex items-center"
-        >
-          <div className={cn('controls flex flex-row cursor-pointer')}>
-            {
-              <Typography
-                variant="h6"
-                noWrap
-                className={cn(showSidebar ? 'ml-3' : 'ml-1')}
-                sx={{
-                  maxWidth: isSmallScreen ? '12rem' : '18rem',
-                }}
-                onClick={() => {
-                  editCurrentSession()
-                }}
-              >
-                {currentSession.name}
-              </Typography>
-            }
-            <div
+      <div className={cn('w-full flex flex-row flex-grow pt-2 pb-2')}>
+        <div className="flex flex-row items-center w-0 flex-1 mr-1">
+          <Typography
+            variant="h6"
+            noWrap
+            className={cn(
+              'flex-shrink flex-grow-0 overflow-hidden text-ellipsis whitespace-nowrap',
+              showSidebar ? 'ml-3' : 'ml-1'
+            )}
+          >
+            {currentSession?.name}
+          </Typography>
+          {isSmallScreen ? (
+            <MiniButton
+              className="ml-1 sm:ml-2 controls cursor-pointer"
+              style={{ color: theme.palette.text.secondary }}
               onClick={() => {
                 editCurrentSession()
               }}
+              tooltipTitle={
+                <div className="text-center inline-block">
+                  <span>{t('Customize settings for the current conversation')}</span>
+                </div>
+              }
+              tooltipPlacement="top"
+            >
+              <Settings2 size="16" strokeWidth={1} />
+            </MiniButton>
+          ) : (
+            <a
+              onClick={() => {
+                editCurrentSession()
+              }}
+              className="controls flex mr-8 cursor-pointer"
             >
               {EditButton}
-            </div>
-          </div>
-        </Typography>
-        <div className={needRoomForWindowsWindowControls ? 'mr-36' : ''}>
+            </a>
+          )}
+        </div>
+        <div className={cn('flex-shrink-0', needRoomForWindowsWindowControls ? 'mr-36' : '')}>
           <Toolbar />
         </div>
       </div>

@@ -1,19 +1,17 @@
 import { USE_LOCAL_API } from '@/variables'
 import {
+  ChatboxAILicenseDetail,
   Config,
   CopilotDetail,
-  RemoteConfig,
-  ChatboxAILicenseDetail,
-  Settings,
-  ModelProvider,
   ModelOptionGroup,
-  Message,
+  ModelProvider,
+  ModelProviderEnum,
+  RemoteConfig,
+  Settings,
 } from '../../shared/types'
-import { ofetch } from 'ofetch'
-import { afetch, uploadFile } from './request'
 import * as cache from './cache'
-import { uniq } from 'lodash'
-import platform from '@/platform'
+import { getOS } from './navigator'
+import { afetch, uploadFile } from './request'
 
 // ========== API ORIGIN 根据可用性维护 ==========
 
@@ -21,6 +19,9 @@ import platform from '@/platform'
 
 export let API_ORIGIN = 'https://api.chatboxai.app'
 
+export function isChatboxAPI(url: RequestInfo | URL) {
+  return url.toString().startsWith(API_ORIGIN)
+}
 /**
  * 按顺序测试 API 的可用性，只要有一个 API 域名可用，就终止测试并切换所有流量到该域名。
  * 在测试过程中，会根据服务器返回添加新的 API 域名，并缓存到本地
@@ -454,12 +455,48 @@ export async function getModelConfigs(params: { aiProvider: ModelProvider; licen
   return json['data']
 }
 
+export async function getModelManifest(params: { aiProvider: ModelProvider; licenseKey?: string; language?: string }) {
+  type Response = {
+    data: {
+      groupName: string
+      models: {
+        modelId: string
+        modelName: string
+        labels: string[]
+      }[]
+    }
+  }
+  const res = await afetch(
+    `${API_ORIGIN}/api/model_manifest`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        aiProvider: params.aiProvider,
+        licenseKey: params.licenseKey,
+        language: params.language,
+      }),
+    },
+    {
+      parseChatboxRemoteError: true,
+      retry: 2,
+    }
+  )
+  const json: Response = await res.json()
+  return json['data']
+}
+
 export async function getModelConfigsWithCache(params: {
   aiProvider: ModelProvider
   licenseKey?: string
   language?: string
 }) {
-  if (params.aiProvider === ModelProvider.Custom) {
+  if (
+    params.aiProvider === ModelProviderEnum.Custom ||
+    (typeof params.aiProvider === 'string' && params.aiProvider.startsWith('custom-provider'))
+  ) {
     return { option_groups: [] }
   }
   type ModelConfig = Awaited<ReturnType<typeof getModelConfigs>>

@@ -1,22 +1,14 @@
 import { getOS } from '@/packages/navigator'
 import { useTranslation } from 'react-i18next'
-import { Settings, ShortcutName, ShortcutSetting, shortcutToggleWindowValues } from '../../shared/types'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Box,
-  IconButton,
-  Tooltip,
-} from '@mui/material'
-import { Select, MenuItem } from '@mui/material'
-import { shortcutSendValues } from '../../shared/types'
-import WarningIcon from '@mui/icons-material/Warning'
+  Settings,
+  ShortcutName,
+  ShortcutSetting,
+  shortcutToggleWindowValues,
+  shortcutSendValues,
+} from '@/../shared/types'
+import { Box, Combobox, Flex, Input, InputBase, Kbd, Select, Table, Text, useCombobox } from '@mantine/core'
+import { IconAlertHexagon } from '@tabler/icons-react'
 
 const os = getOS()
 
@@ -85,20 +77,15 @@ export function Keys(props: {
   const opacityClass = props.opacity !== undefined ? `opacity-${props.opacity * 100}` : ''
   return (
     <span
-      className={`inline-block px-1 font-mono whitespace-nowrap ${sizeClass} ${opacityClass} ${props.className || ''}`}
+      className={`inline-block px-1 ${opacityClass} ${props.className || ''}`}
     >
       {props.keys.map((key, index) => (
-        <Key key={index}>{formatKey(key)}</Key>
+        <Kbd key={key + index} className="mr-3xs">
+          {formatKey(key)}
+        </Kbd>
+        // <Key key={index}>{formatKey(key)}</Key>
       ))}
     </span>
-  )
-}
-
-function Key(props: { children: React.ReactNode }) {
-  return (
-    <code className="inline-block px-1 mx-[1px] border border-solid border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-      {props.children}
-    </code>
   )
 }
 
@@ -209,65 +196,43 @@ export function ShortcutConfig(props: {
     return false
   }
   return (
-    <TableContainer component={Paper}>
-      {/* <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-                <ConfirmDeleteButton
-                    onDelete={() => {
-                        setShortcuts(defaults.settings().shortcuts)
-                    }}
-                    icon={<RestartAltIcon />}
-                    label={t('Reset All Hotkeys')}
-                    color="warning"
-                />
-            </Box> */}
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('Action')}</TableCell>
-            <TableCell align="center">{t('Hotkeys')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
+    <Box className="border border-solid  py-xs px-md rounded-xs border-[var(--mantine-color-chatbox-border-primary-outline)]">
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>{t('Action')}</Table.Th>
+            <Table.Th>{t('Hotkeys')}</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+
+        <Table.Tbody>
           {items.map(({ name, label, keys, options }, itemIndex) => (
-            <TableRow key={`${name}-${itemIndex}`}>
-              <TableCell>
-                <Typography variant="body2" className="text-sm">
-                  {label}
-                </Typography>
-              </TableCell>
-              <TableCell align="center">
+            <Table.Tr key={`${name}-${itemIndex}`}>
+              <Table.Td>{label}</Table.Td>
+              <Table.Td>
                 {options ? (
-                  <Select
-                    size="small"
+                  <ShortcutSelect
+                    options={options}
                     value={keys}
-                    onChange={(e) => {
+                    onSelect={(val) => {
                       if (name && setShortcuts) {
                         setShortcuts({
                           ...shortcuts,
-                          [name]: e.target.value,
+                          [name]: val,
                         })
                       }
                     }}
-                    sx={{
-                      '.MuiSelect-select': { py: 0.5, px: 4 },
-                      minWidth: '120px',
-                    }}
-                  >
-                    {options.map((value) => (
-                      <MenuItem dense key={value} value={value} sx={{ py: 0.5, px: 0 }}>
-                        <ShortcutText shortcut={value} isConflict={false} />
-                      </MenuItem>
-                    ))}
-                  </Select>
+                    isConflict={name ? isConflict(name, keys) : false}
+                  />
                 ) : (
-                  <ShortcutText shortcut={keys} isConflict={name ? isConflict(name, keys) : false} />
+                  <ShortcutText shortcut={keys} isConflict={name ? isConflict(name, keys) : false} className="ml-sm" />
                 )}
-              </TableCell>
-            </TableRow>
+              </Table.Td>
+            </Table.Tr>
           ))}
-        </TableBody>
+        </Table.Tbody>
       </Table>
-    </TableContainer>
+    </Box>
   )
 }
 
@@ -278,16 +243,59 @@ function ShortcutText(props: { shortcut: string; isConflict?: boolean; className
     return <span className={`px-2 py-0.5 text-xs ${className || ''}`}>{t('None')}</span>
   }
   return (
-    <span className={`py-0.5 text-xs ${className || ''}`}>
+    <Flex align="center" component="span" className={`py-0.5 text-xs ${className || ''}`} c="chatbox-error">
       <Keys keys={shortcut.split('+')} />
-      {isConflict && (
-        <WarningIcon
-          sx={{
-            color: 'warning.main',
-            fontSize: '16px',
-          }}
-        />
-      )}
-    </span>
+      {isConflict && <IconAlertHexagon size={16} />}
+    </Flex>
+  )
+}
+
+function ShortcutSelect({
+  options,
+  value,
+  onSelect,
+  isConflict,
+}: {
+  options: string[]
+  value: string
+  onSelect?(val: string): void
+  isConflict?: boolean
+}) {
+  const combobox = useCombobox({
+    onDropdownClose: () => combobox.resetSelectedOption(),
+  })
+
+  return (
+    <Combobox
+      store={combobox}
+      onOptionSubmit={(val) => {
+        onSelect?.(val)
+        combobox.closeDropdown()
+      }}
+    >
+      <Combobox.Target targetType="button">
+        <InputBase
+          maw={160}
+          component="button"
+          type="button"
+          pointer
+          rightSection={<Combobox.Chevron />}
+          rightSectionPointerEvents="none"
+          onClick={() => combobox.toggleDropdown()}
+        >
+          <ShortcutText shortcut={value} isConflict={isConflict} />
+        </InputBase>
+      </Combobox.Target>
+
+      <Combobox.Dropdown>
+        <Combobox.Options>
+          {options.map((o) => (
+            <Combobox.Option key={o} value={o}>
+              <ShortcutText shortcut={o} />
+            </Combobox.Option>
+          ))}
+        </Combobox.Options>
+      </Combobox.Dropdown>
+    </Combobox>
   )
 }

@@ -1,11 +1,11 @@
-import NiceModal, { useModal, muiDialogV5 } from '@ebay/nice-modal-react'
-import { Box, Button, Paper, Dialog, DialogContent } from '@mui/material'
-import icon from '../static/icon.png'
-import { useTranslation } from 'react-i18next'
 import * as atoms from '@/stores/atoms'
-import { ModelProvider } from '../../shared/types'
 import * as settingActions from '@/stores/settingActions'
+import NiceModal, { muiDialogV5, useModal } from '@ebay/nice-modal-react'
+import { Box, Button, Dialog, DialogContent, Paper } from '@mui/material'
 import { useAtomValue } from 'jotai'
+import { useTranslation } from 'react-i18next'
+import { ModelProviderEnum } from '../../shared/types'
+import icon from '../static/icon.png'
 
 const Welcome = NiceModal.create(() => {
   const { t } = useTranslation()
@@ -20,6 +20,7 @@ const Welcome = NiceModal.create(() => {
         modal.hide()
       }}
       maxWidth="xs"
+      fullWidth
     >
       <DialogContent>
         <Box sx={{ textAlign: 'center', padding: '12px 24px' }}>
@@ -74,8 +75,8 @@ const Welcome = NiceModal.create(() => {
                     lineHeight: 1.4,
                   }}
                   onClick={() => {
-                    settingActions.setModelProvider(ModelProvider.ChatboxAI)
-                    modal.resolve(ModelProvider.ChatboxAI)
+                    settingActions.setModelProvider(ModelProviderEnum.ChatboxAI)
+                    modal.resolve(ModelProviderEnum.ChatboxAI)
                     modal.hide()
                   }}
                 >

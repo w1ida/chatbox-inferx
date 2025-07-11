@@ -218,6 +218,9 @@ function ExportAndImport(props: { onCancel: () => void }) {
               setData: async (key, value) => {
                 importData[key] = value
               },
+              setAll: async (data) => {
+                Object.assign(importData, data)
+              },
             },
             false
           )

@@ -64,6 +64,7 @@ const configuration: webpack.Configuration = {
         test: /\.s?(a|c)ss$/,
         use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader', 'postcss-loader'],
         exclude: /\.module\.s?(c|a)ss$/,
+        sideEffects: true,
       },
       // Fonts
       {
@@ -131,7 +132,7 @@ const configuration: webpack.Configuration = {
     }),
 
     new MiniCssExtractPlugin({
-      filename: 'assets/css/[name].[contenthash].css', // CSS文件放在assets/css目录下
+      filename: '[name].[contenthash].css', // CSS文件放在assets/css目录下 - 又不放了，因为这样会导致非web端的字体文件引用路径出错
     }),
 
     new BundleAnalyzerPlugin({

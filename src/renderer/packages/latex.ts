@@ -9,14 +9,14 @@
 export function processLaTeX(content: string): string {
   // Step 1: Protect code blocks
   const codeBlocks: string[] = []
-  content = content.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match, code) => {
+  content = content.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (_, code) => {
     codeBlocks.push(code)
     return `<<CODE_BLOCK_${codeBlocks.length - 1}>>`
   })
 
   // Step 2: Protect existing LaTeX expressions
   const latexExpressions: string[] = []
-  content = content.replace(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\(.*?\\\))/g, (match) => {
+  content = content.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]*?\$|\\\[[\s\S]*?\\\]|\\\(.*?\\\))/g, (match) => {
     latexExpressions.push(match)
     return `<<LATEX_${latexExpressions.length - 1}>>`
   })

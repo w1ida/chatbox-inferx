@@ -1,47 +1,26 @@
-import { ModelSettings, Session, SessionType, Settings } from 'src/shared/types'
-import { ModelSettingUtil } from './interface'
+import { ModelProvider, ModelProviderEnum, ProviderSettings, SessionType } from 'src/shared/types'
+import DeepSeek from '../models/deepseek'
 import BaseConfig from './base-config'
-import DeepSeek, { deepSeekModels } from '../models/deepseek'
+import { ModelSettingUtil } from './interface'
 
 export default class DeepSeekSettingUtil extends BaseConfig implements ModelSettingUtil {
-  async getCurrentModelDisplayName(settings: Settings, sessionType: SessionType): Promise<string> {
-    return `DeepSeek API (${settings.deepseekModel})`
+  public provider: ModelProvider = ModelProviderEnum.DeepSeek
+  async getCurrentModelDisplayName(
+    model: string,
+    sessionType: SessionType,
+    providerSettings?: ProviderSettings
+  ): Promise<string> {
+    return `DeepSeek API (${providerSettings?.models?.find((m) => m.modelId === model)?.nickname || model})`
   }
 
-  getCurrentModelOptionValue(settings: Settings) {
-    return settings.deepseekModel
-  }
-
-  public getLocalOptionGroups(settings: ModelSettings) {
-    return [
-      {
-        options: deepSeekModels.map((value) => {
-          return {
-            label: value,
-            value: value,
-          }
-        }),
+  protected async listProviderModels(settings: ProviderSettings) {
+    const deepSeek = new DeepSeek({
+      deepseekAPIKey: settings.apiKey!,
+      model: {
+        modelId: '',
+        capabilities: [],
       },
-    ]
-  }
-
-  protected async listProviderModels(settings: ModelSettings) {
-    const deepSeek = new DeepSeek(settings)
+    })
     return deepSeek.listModels()
-  }
-
-  selectSessionModel(settings: Session['settings'], selected: string): Session['settings'] {
-    return {
-      ...settings,
-      deepseekModel: selected,
-    }
-  }
-
-  public isCurrentModelSupportImageInput(settings: ModelSettings) {
-    return DeepSeek.helpers.isModelSupportVision(settings.deepseekModel)
-  }
-
-  public isCurrentModelSupportToolUse(settings: ModelSettings) {
-    return DeepSeek.helpers.isModelSupportToolUse(settings.deepseekModel)
   }
 }
