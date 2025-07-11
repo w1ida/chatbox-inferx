@@ -4,7 +4,7 @@ import platform from '../platform'
 
 void (async () => {
   const settings = await platform.getSettings()
-  if (!settings.allowReportingAndTracking) {
+  if (1||!settings.allowReportingAndTracking) {
     return
   }
 
