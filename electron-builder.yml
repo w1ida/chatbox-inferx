@@ -1,5 +1,5 @@
 productName: Chatbox
-appId: xyz.chatboxapp.app
+appId: xyz.chatboxapp.ce
 asar: true
 asarUnpack: "**\\*.{node,dll}"
 files:
@@ -12,28 +12,28 @@ afterSign: .erb/scripts/notarize.js
 # releaseInfo:
 #   releaseNotes: See the changelog for details
 
-mac:
-  notarize: false
-  category: public.app-category.developer-tools
-  target:
-    target: default
-    arch:
-      - arm64
-      - x64
-  type: distribution
-  hardenedRuntime: true
-  entitlements: assets/entitlements.mac.plist
-  entitlementsInherit: assets/entitlements.mac.plist
-  gatekeeperAssess: false
+# mac:
+#   notarize: false
+#   category: public.app-category.developer-tools
+#   target:
+#     target: default
+#     arch:
+#       - arm64
+#       - x64
+#   type: distribution
+#   hardenedRuntime: true
+#   entitlements: assets/entitlements.mac.plist
+#   entitlementsInherit: assets/entitlements.mac.plist
+#   gatekeeperAssess: false
 
-dmg:
-  contents:
-    - x: 130
-      y: 220
-    - x: 410
-      y: 220
-      type: link
-      path: /Applications
+# dmg:
+#   contents:
+#     - x: 130
+#       y: 220
+#     - x: 410
+#       y: 220
+#       type: link
+#       path: /Applications
 
 win:
   # by pass safe agent
@@ -43,25 +43,24 @@ win:
       arch:
         - x64
         # - arm64
-
   verifyUpdateCodeSignature: false
   artifactName: ${productName}-${version}.${ext}
   # sign: ./custom_win_sign.js
   # signingHashAlgorithms:
   #   - sha256
-portable:
-  requestExecutionLevel: "admin"
-nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
-  include: assets/installer.nsh
+# portable:
+#   requestExecutionLevel: "admin"
+# nsis:
+#   oneClick: false
+#   allowToChangeInstallationDirectory: true
+#   include: assets/installer.nsh
 
 linux:
   target:
-    - target: AppImage
-      arch:
-        - x64
-        - arm64
+    # - target: AppImage
+    #   arch:
+    #     - x64
+    #     - arm64
     - target: deb
       arch:
         - x64

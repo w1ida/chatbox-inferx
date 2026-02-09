@@ -436,7 +436,7 @@ export async function recoverSessionList() {
   console.debug('chatStore', 'recoverSessionList')
 
   // Get all storage keys
-  const allKeys = await storage.getAllKeys()
+  const allKeys = await storage.getAll().then((data) => Object.keys(data))
 
   // Filter keys that match the session: prefix
   const sessionKeys = allKeys.filter((key) => key.startsWith('session:'))

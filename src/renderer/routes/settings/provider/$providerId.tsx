@@ -374,7 +374,7 @@ function ProviderSettings({ providerId }: { providerId: string }) {
               {t('API Key')}
             </Text>
             <Flex gap="xs" align="center">
-              <PasswordInput flex={1} value={providerSettings?.apiKey || ''} onChange={handleApiKeyChange} />
+              <PasswordInput flex={1} visibilityToggleButtonProps={()=>false} value={providerSettings?.apiKey || ''} onChange={handleApiKeyChange} />
               <Tooltip
                 disabled={!!providerSettings?.apiKey && displayModels.length > 0}
                 label={

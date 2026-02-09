@@ -35,8 +35,25 @@ import { resolveHtmlPath } from './util'
 import * as windowState from './window_state'
 
 // Only import knowledge-base module if not on win32 arm64 (libsql doesn't support win32 arm64)
+let kbInitializationError: string | null = null
+let kbInitialized = false
+let kbInitStack: string | null = null
+
 if (!(process.platform === 'win32' && process.arch === 'arm64')) {
+  console.log('[KB] Starting knowledge-base module initialization...')
   import('./knowledge-base')
+    .then(() => {
+      kbInitialized = true
+      console.log('[KB] Knowledge-base module initialized successfully')
+    })
+    .catch((error) => {
+      kbInitializationError = error?.message || 'Unknown error'
+      kbInitStack = error?.stack || ''
+      console.error('[KB] Failed to import knowledge-base module:', error)
+      console.error('[KB] Error stack:', error?.stack)
+    })
+} else {
+  kbInitializationError = 'Knowledge base is not supported on win32 ARM64 architecture'
 }
 
 // 这行代码是解决 Windows 通知的标题和图标不正确的问题，标题会错误显示成 electron.app.Chatbox
@@ -221,6 +238,9 @@ if (isDebug) {
   require('electron-debug')()
 }
 
+// 检查启动参数中是否包含 --devtools 标志
+const shouldOpenDevTools = process.argv.includes('--devtools')
+
 // const installExtensions = async () => {
 //     const installer = require('electron-devtools-installer')
 //     const forceDownload = !!process.env.UPGRADE_EXTENSIONS
@@ -282,6 +302,11 @@ async function createWindow() {
         mainWindow.setFullScreen(true)
       }
       mainWindow.show()
+    }
+
+    // 如果启动参数包含 --devtools，则打开开发者工具
+    if (shouldOpenDevTools) {
+      mainWindow.webContents.openDevTools()
     }
   })
 
@@ -420,7 +445,7 @@ if (!gotTheLock) {
       ensureTray()
       // Remove this if your app does not use auto updates
       // eslint-disable-next-line
-      new AppUpdater(() => mainWindow?.webContents.send('update-downloaded', {}))
+      // new AppUpdater(() => mainWindow?.webContents.send('update-downloaded', {}))
 
       // 处理启动时的 Deep Link (Windows/Linux)
       // macOS 会通过 open-url 事件处理，不需要在这里处理
@@ -536,6 +561,37 @@ ipcMain.handle('delStoreBlob', async (event, key) => {
 })
 ipcMain.handle('listStoreBlobKeys', async (event) => {
   return listStoreBlobKeys()
+})
+
+ipcMain.handle('openDevTools', (event) => {
+  event.sender.openDevTools()
+})
+
+ipcMain.handle('kb:status', () => {
+  const status = {
+    initialized: kbInitialized,
+    error: kbInitializationError,
+    stack: kbInitStack,
+  }
+  console.log('[KB] kb:status called, returning:', status)
+  return status
+})
+
+ipcMain.handle('kb:debug-status', () => {
+  console.log('[KB] kb:debug-status called')
+  console.log('[KB] kbInitialized:', kbInitialized)
+  console.log('[KB] kbInitializationError:', kbInitializationError)
+  console.log('[KB] kbInitStack:', kbInitStack)
+  const status = {
+    initialized: kbInitialized,
+    error: kbInitializationError,
+    errorStack: kbInitStack,
+    timestamp: new Date().toISOString(),
+    platform: process.platform,
+    arch: process.arch,
+  }
+  console.log('[KB] Returning debug status:', JSON.stringify(status, null, 2))
+  return status
 })
 
 ipcMain.handle('getVersion', () => {

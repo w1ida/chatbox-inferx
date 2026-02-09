@@ -73,15 +73,267 @@ export function settings(): Settings {
     // xAIKey: '',
     // xAIModel: 'grok-beta',
 
+
+
+    providers: {
+      "NexInfer": {
+        apiHost: 'http://inferx-api.paas.cmbchina.cn',
+        apiKey: 'sk-8c86a0f384614a2d8e3f0d9b6d9d3d1a',
+        apiPath: '/v1/chat/completions',
+        "models": [
+            {
+              "modelId": "qwen3-30b-a3b-kl",
+              "type": "chat",
+              "capabilities": [
+                "tool_use",
+                "reasoning"
+              ],
+              "contextWindow": 32000,
+              "maxOutput": 20000
+            },
+            {
+              "modelId": "Qwen3-32B",
+              "type": "chat",
+              "capabilities": [
+                "tool_use",
+                "reasoning"
+              ]
+            },
+            {
+              "modelId": "Qwen3-32B-128K",
+              "type": "chat",
+              "capabilities": [
+                "reasoning",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-vl-4b-instruct",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-vl-30b-a3b-instruct",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-vl-32b-instruct",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-235b-a22b-int8-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-32b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-30b-a3b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-14b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen2-vl-7b-instruct-hw",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-4b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-4b-hw",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-14b-hw",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "yizhao1-12b-hw",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "bge-m3-mx",
+              "type": "embedding",
+              "capabilities": []
+            }
+          ],
+      }
+    }
+    ,
     customProviders: [
       {
         type: ModelProviderType.OpenAI,
-        id: 'InferX',
-        name: 'InferX',
+        id: 'NexInfer',
+        name: 'NexInfer',
         defaultSettings: {
           apiHost: 'http://inferx-api.paas.cmbchina.cn',
           apiKey: 'sk-8c86a0f384614a2d8e3f0d9b6d9d3d1a',
           apiPath: '/v1/chat/completions',
+          models: [
+            {
+              "modelId": "qwen3-30b-a3b-kl",
+              "type": "chat",
+              "capabilities": [
+                "tool_use",
+                "reasoning"
+              ],
+              "contextWindow": 32000,
+              "maxOutput": 20000
+            },
+            {
+              "modelId": "Qwen3-32B",
+              "type": "chat",
+              "capabilities": [
+                "tool_use",
+                "reasoning"
+              ]
+            },
+            {
+              "modelId": "Qwen3-32B-128K",
+              "type": "chat",
+              "capabilities": [
+                "reasoning",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-vl-4b-instruct",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-vl-30b-a3b-instruct",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-vl-32b-instruct",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-235b-a22b-int8-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-32b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-30b-a3b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-14b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen2-vl-7b-instruct-hw",
+              "type": "chat",
+              "capabilities": [
+                "vision",
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-4b-mx",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-4b-hw",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "qwen3-14b-hw",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "yizhao1-12b-hw",
+              "type": "chat",
+              "capabilities": [
+                "tool_use"
+              ]
+            },
+            {
+              "modelId": "bge-m3-mx",
+              "type": "embedding",
+              "capabilities": []
+            }
+          ],
         },
         isCustom: true
       },
@@ -114,7 +366,7 @@ export function settings(): Settings {
     autoGenerateTitle: true,
 
     autoLaunch: false,
-    autoUpdate: true,
+    autoUpdate: false,
     betaUpdate: false,
 
     shortcuts: {

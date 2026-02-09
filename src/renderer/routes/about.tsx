@@ -11,7 +11,7 @@ import {
   IconPencil,
 } from '@tabler/icons-react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Fragment, type ReactElement } from 'react'
+import { Fragment, type ReactElement, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import BrandGithub from '@/components/icons/BrandGithub'
 import BrandRedNote from '@/components/icons/BrandRedNote'
@@ -34,6 +34,29 @@ function RouteComponent() {
   const version = useVersion()
   const language = useLanguage()
   const isSmallScreen = useIsSmallScreen()
+  const [clickCount, setClickCount] = useState(0)
+  const resetTimer = useRef<NodeJS.Timeout | null>(null)
+
+  const handleDevtoolsClick = () => {
+    const newCount = clickCount + 1
+    setClickCount(newCount)
+
+    // 重置计时器
+    if (resetTimer.current) {
+      clearTimeout(resetTimer.current)
+    }
+
+    // 如果3秒内没有再次点击，则重置计数
+    resetTimer.current = setTimeout(() => {
+      setClickCount(0)
+    }, 3000)
+
+    if (newCount === 3) {
+      // 打开开发者工具
+      window.electronAPI?.invoke('openDevTools')
+      setClickCount(0)
+    }
+  }
 
   return (
     <Page title={t('About')}>
@@ -46,6 +69,15 @@ function RouteComponent() {
                 <Title order={5} lh={1.5}>
                   Chatbox {/\d/.test(version.version) ? `(v${version.version})` : ''}
                 </Title>
+                <Button
+                  size="xs"
+                  variant="subtle"
+                  onClick={handleDevtoolsClick}
+                  title={`Click count: ${clickCount}/3`}
+                  opacity={0.5}
+                >
+                  {clickCount > 0 ? `●${clickCount}` : '○'}
+                </Button>
 
                 {!isSmallScreen && (
                   <Button
@@ -82,7 +114,7 @@ function RouteComponent() {
             </Stack>
           </Flex>
 
-          {_i18n.language === 'zh-Hans' ? (
+          {_i18n.language === 'zh-Hans1' ? (
             <Stack gap="xs" p="md" className="rounded-lg bg-chatbox-background-warning-secondary">
               <Flex align="center" gap="xxs" c="chatbox-error">
                 <ScalableIcon icon={IconAlertTriangle} size={24} className="!text-inherit" />

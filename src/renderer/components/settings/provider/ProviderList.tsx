@@ -49,7 +49,7 @@ export function ProviderList({ providers, onAddProvider, onImportProvider, isImp
     >
       <ScrollArea flex={1} type={isSmallScreen ? 'never' : 'hover'} scrollHideDelay={100}>
         <Stack p={isSmallScreen ? 0 : 'xs'} gap={isSmallScreen ? 0 : 'xs'}>
-          {providers.map((provider) => (
+          {providers.filter((p) => p.isCustom).map((provider) => (
             <Link
               key={provider.id}
               to={provider.id === 'chatbox-ai' ? `/settings/provider/chatbox-ai` : `/settings/provider/$providerId`}

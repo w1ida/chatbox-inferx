@@ -124,7 +124,7 @@ export function RouteComponent() {
     <Flex h="100%" w="100%">
       {(!isSmallScreen || routerState.location.pathname === '/settings/provider') && (
         <ProviderList
-          providers={providers}
+          providers={providers.filter((p) => p.isCustom)}
           onAddProvider={() => setNewProviderModalOpened(true)}
           onImportProvider={handleClipboardImport}
           isImporting={isImporting}
